@@ -1,0 +1,17 @@
+var x:int;
+fun f(y:int, z:int):int
+   { var x,a[y][z]:int;
+     fun g(a[][]:int,b:int):int
+         { var y:int;
+           begin
+              a[i][j]:= f(x,v);
+              return y;
+           end
+         };
+      begin
+        return x;
+      end
+   };
+var v:int;
+begin 
+end

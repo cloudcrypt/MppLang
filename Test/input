@@ -1,0 +1,22 @@
+var x,y,z:int;
+var a[1][2][3]:int;
+fun exp(a:int, b:int):int
+{   var z:int;
+    if b=0 then z:= 1
+           else z:= x * exp(b-1);
+    return z;
+};
+read x;
+read y;
+% print exp(y);
+print y;
+/*
+var x:int;
+fun test(y:int):int
+{
+	var z:int;
+	return y;
+};
+begin
+end
+*/
