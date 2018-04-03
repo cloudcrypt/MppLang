@@ -1,0 +1,6 @@
+var x,y,z:int;
+begin
+print 1;
+print 2;
+print 3;
+end
