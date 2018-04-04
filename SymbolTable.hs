@@ -35,6 +35,10 @@ type ST = [SYM_TABLE]
 
 type AST = M_prog
 
+type IR = I_prog
+
+type Array_desc = (Int,[I_expr])
+
 data I_prog = I_PROG ([I_fbody],Int,[(Int,[I_expr])],[I_stmt])
     deriving (Show)
               -- functions, number of local variables, array descriptions, body.
@@ -116,69 +120,111 @@ inIndexList str ((x,_):xs)
     | str==x = True
     | otherwise = inIndexList str xs
 
---lookup:: ST -> string -> SYM_I_DESC
---lookup s x = find 0 s where
---  found level (Var_attr(offset,type,dim)) 
---                =  I_VARIABLE(level,offset,type,dim)
---  found level (Fun_attr(label,arg_Type,type)) 
---                = I_FUNCTION(level,label,arg_Type,type)
---  ...
-
---  find_level ((str,v):rest)|x== str = Just v
---                           |otherwise =  find_level rest
---  find_level [] = Nothing
-
---  find n [] = error ("Could not find "++ str)
---  find n (Sym_tbl(_,_,_,vs)::rest) = 
---         (case find_level vs of 
---          Just v -> found n v
---    Nothing -> find (n+1) rest)
-
+look_up:: ST -> String -> SYM_I_DESC
+look_up s x = find 0 s where
+  found level (Var_attr(offset,t,dim)) 
+                =  I_VARIABLE(level,offset,t,dim)
+  found level (Fun_attr(label,arg_type,t)) 
+                = I_FUNCTION(level,label,arg_type,t)
+  find_level ((str,v):rest) | x == str = Just v
+                            | otherwise =  find_level rest
+  find_level [] = Nothing
+  find n [] = error ("Could not find "++x)
+  find n (Sym_tbl(_,_,_,vs):rest) = 
+         (case find_level vs of 
+          Just v -> found n v
+          Nothing -> find (n+1) rest)
 
 --return:: ST -> M_type
 
-generateST :: AST -> ST
-generateST (M_prog (decls,stmts)) = generateDeclST to_insert st' where
-    (to_insert, st) = insertDecls decls [] (newscope L_PROG empty)
-    st' = insertStmts stmts st
+generateIR :: AST -> IR
+generateIR (M_prog (decls,stmts)) = I_PROG ([],(localVarCount $ head st),[],stmt_irs) where
+    st = collect_decls decls (newscope L_PROG empty)
+    stmt_irs = stmtsIR stmts st
 
-generateBlockST :: M_stmt -> ST -> ST
-generateBlockST (M_block (decls,stmts)) st = generateDeclST to_insert st'' where
-    (to_insert, st') = insertDecls decls [] (newscope L_BLK st)
-    st'' = insertStmts stmts st'
+collect_decls :: [M_decl] -> ST -> ST
+collect_decls (decl:decls) st = collect_decls decls st' where
+    (n, st') = insert 0 st (getSymDesc decl)
+collect_decls [] st = st
 
-generateDeclST :: [M_decl] -> ST -> ST
-generateDeclST ((M_fun (_,args,t,decls,stmts)):rest) st = generateDeclST rest' st''' where
-  (rest', st') = insertDecls decls rest (newscope (L_FUN t) st)
-  st'' = insertArgs (reverse $ map getArgDesc args) st'
-  st''' = insertStmts stmts st''
-generateDeclST (_:rest) st = generateDeclST rest st
-generateDeclST [] st = st
+--collect_decl :: M_decl -> ST -> (ST, Maybe Array_desc)
+--collect_decl decl st = let (n, st') = insert 0 st (getSymDesc d) in
+--                        case isArray decl of
+--                            True -> (st', Just )
 
-insertDecls :: [M_decl] -> [M_decl] -> ST -> ([M_decl], ST)
-insertDecls (d:ds) to_insert st = insertDecls ds (to_insert++[d]) st' where
-  (n, st') = insert 0 st (getSymDesc d)
-insertDecls [] to_insert st = (to_insert, st)
+--arrayDescs :: ST -> [Array_desc]
+--arrayDescs ((Sym_tbl (_,_,_,(varattrs:_)):_)
+localVarCount :: SYM_TABLE -> Int
+localVarCount (Sym_tbl (_,n,_,_)) = n
 
-insertStmts :: [M_stmt] -> ST -> ST
-insertStmts ((M_while (_,stmt)):rest) st = insertStmts (rest++[stmt]) st
-insertStmts ((M_cond (_,stmt1,stmt2)):rest) st = insertStmts (rest++[stmt1,stmt2]) st
-insertStmts ((M_block b):rest) st = insertStmts rest st' where
-  st' = generateBlockST (M_block b) st
-insertStmts (_:rest) st = insertStmts rest st
-insertStmts [] st = st
+stmtsIR :: [M_stmt] -> ST -> [I_stmt]
+stmtsIR stmts st = map (\stmt -> stmtIR stmt st) stmts
 
-insertArgs :: [SYM_DESC] -> ST -> ST
-insertArgs (arg:args) st = insertArgs args st' where
-  (n, st') = insert 0 st arg
-insertArgs [] st = st
+stmtIR :: M_stmt -> ST -> I_stmt
+stmtIR (M_print expr) st = let (expr_ir,t) = exprIR expr st in
+                            case t of
+                                M_int -> I_PRINT_I expr_ir
+                                M_bool -> I_PRINT_B expr_ir
+                                M_real -> I_PRINT_F expr_ir
+                                M_char -> I_PRINT_C expr_ir
+                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
+
+exprIR :: M_expr -> ST -> (I_expr, M_type)
+exprIR (M_ival i) st = ((I_IVAL i),M_int)
+exprIR (M_id (s,exprs)) st = (I_ID (level,offset,(map (\e -> fst $ exprIR e st) exprs)),t) where
+    I_VARIABLE (level,offset,t,_) = look_up st s
+
+--isArray :: M_decl -> Bool
+--isArray (M_var (_,exprs,_)) = case length exprs of
+--                                0 -> False
+--                                _ -> True
+--isArray _ = False
+
+--getLastOffset :: ST -> Int
+--getLastOffset ((Sym_tbl (_,_,_,(_,Var_attr (offset,_,_)):_)):_) = offset
+
+--generateST :: AST -> ST
+--generateST (M_prog (decls,stmts)) = generateDeclST to_insert st' where
+--    (to_insert, st) = insertDecls decls [] (newscope L_PROG empty)
+--    st' = insertStmts stmts st
+
+--generateBlockST :: M_stmt -> ST -> ST
+--generateBlockST (M_block (decls,stmts)) st = generateDeclST to_insert st'' where
+--    (to_insert, st') = insertDecls decls [] (newscope L_BLK st)
+--    st'' = insertStmts stmts st'
+
+--generateDeclST :: [M_decl] -> ST -> ST
+--generateDeclST ((M_fun (_,args,t,decls,stmts)):rest) st = generateDeclST rest' st''' where
+--  (rest', st') = insertDecls decls rest (newscope (L_FUN t) st)
+--  st'' = insertArgs (reverse $ map getArgDesc args) st'
+--  st''' = insertStmts stmts st''
+--generateDeclST (_:rest) st = generateDeclST rest st
+--generateDeclST [] st = st
+
+--insertDecls :: [M_decl] -> [M_decl] -> ST -> ([M_decl], ST)
+--insertDecls (d:ds) to_insert st = insertDecls ds (to_insert++[d]) st' where
+--  (n, st') = insert 0 st (getSymDesc d)
+--insertDecls [] to_insert st = (to_insert, st)
+
+--insertStmts :: [M_stmt] -> ST -> ST
+--insertStmts ((M_while (_,stmt)):rest) st = insertStmts (rest++[stmt]) st
+--insertStmts ((M_cond (_,stmt1,stmt2)):rest) st = insertStmts (rest++[stmt1,stmt2]) st
+--insertStmts ((M_block b):rest) st = insertStmts rest st' where
+--  st' = generateBlockST (M_block b) st
+--insertStmts (_:rest) st = insertStmts rest st
+--insertStmts [] st = st
+
+--insertArgs :: [SYM_DESC] -> ST -> ST
+--insertArgs (arg:args) st = insertArgs args st' where
+--  (n, st') = insert 0 st arg
+--insertArgs [] st = st
 
 getSymDesc :: M_decl -> SYM_DESC
 getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
 getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
 
-getArgDesc :: (String,Int,M_type) -> SYM_DESC
-getArgDesc (s,n,t) = ARGUMENT (s,t,n)
+--getArgDesc :: (String,Int,M_type) -> SYM_DESC
+--getArgDesc (s,n,t) = ARGUMENT (s,t,n)
 
 main :: IO ()
 main = do
@@ -198,8 +244,10 @@ main = do
                     putStr "\nParsed Syntax Tree:\n\n"
                     putStrLn $ printAST ast
 
-                    let st = generateST ast
-                    print st
+                    putStrLn ""
+
+                    let ir = generateIR ast
+                    print ir
 
                 _ -> printErrors (filter isError ts)
         _ -> do

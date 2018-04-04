@@ -1,6 +1,9 @@
 var x,y,z:int;
+var f:real;
+var a[1]:int;
 begin
-print 1;
-print 2;
-print 3;
+print x;
+print y;
+print z;
+print f;
 end
