@@ -18,7 +18,7 @@ import System.Environment
 $alpha = [a-zA-Z]
 $digit = [0-9]
 $quote = ["]
-$char = [^_A-Za-z0-9]
+$char = [\^_A-Za-z0-9]
 
 tokens :-
   $white+			      ; 
@@ -73,12 +73,12 @@ tokens :-
   "fun"             {\p s -> FUN p}
   "return"          {\p s -> RETURN p}
   "#"[_$digit$alpha]*     {\p s -> CID p s}
-  $alpha[_$digit$alpha]*  {\p s -> ID p s}
   $digit+"."$digit+       {\p s -> RVAL p (read s :: Float)}
   $digit+                 {\p s -> IVAL p (read s :: Int)}
   "false"                 {\p s -> BVAL p (toBool s)}
   "true"                  {\p s -> BVAL p (toBool s)}
-  $quote$char$quote       {\p s -> CVAL p (s !! 0)}
+  $alpha[_$digit$alpha]*  {\p s -> ID p s}
+  $quote$char$quote       {\p s -> CVAL p (s !! 1)}
   $quote"\n"$quote        {\p s -> CVAL p '\n'}
   $quote"\t"$quote        {\p s -> CVAL p '\t'}
   .				                {\p s -> ERROR p s}

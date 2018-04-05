@@ -149,8 +149,60 @@ look_up s x = find 0 s where
 
 --return:: ST -> M_type
 
---generateIR :: AST -> IR
---generateIR (M_prog (decls,stmts)) =
+generateIR :: AST -> IR
+generateIR (M_prog (decls,stmts)) = I_PROG (fun_irs,(localVarCount st'),array_descs,stmt_irs) where
+    st = collectTypesIR decls (newscope L_PROG empty)
+    (st', array_descs) = varsIR decls st
+    fun_irs = funsIR decls st'
+    stmt_irs = stmtsIR stmts st'
+
+collectTypesIR :: [M_decl] -> ST -> ST
+collectTypesIR (d:ds) st = collectTypesIR ds st' where
+    st' = collectTypeIR d st
+collectTypesIR [] st = st
+
+varsIR :: [M_decl] -> ST -> (ST, [Array_desc])
+varsIR (d:ds) st = (st'', array_descs++array_descs') where
+    (st', array_descs) = varIR d st
+    (st'', array_descs') = varsIR ds st'
+varsIR [] st = (st, [])
+
+funsIR :: [M_decl] -> ST -> [I_fbody]
+funsIR (d:ds) st = (funIR d st)++(funsIR ds st)
+funsIR [] st = []
+
+collectTypeIR :: M_decl -> ST -> ST
+collectTypeIR _ st = st
+
+varIR :: M_decl -> ST -> (ST, [Array_desc])
+varIR (M_var (str,exprs,t)) st = result where
+    dim_exprs = exprsIR exprs $ tail st
+    all_ints = allInt $ map snd dim_exprs
+    type_ir = typeIR t st
+    (n, st') = insert 0 st (getSymDesc (M_var (str,exprs,type_ir)))
+    dims = map fst dim_exprs
+    array_desc = case (length dims) > 0 of
+                    True -> [((getLastOffset st'),dims)]
+                    False -> []
+    result = case all_ints of
+                True -> (st', array_desc)
+                False -> error "TypeError: All array dimensions must be of type 'int'"
+varIR _ st = (st, [])
+
+funIR :: M_decl -> ST -> [I_fbody]
+funIR _ st = []
+
+stmtsIR :: [M_stmt] -> ST -> [I_stmt]
+stmtsIR stmts st = map (\s -> stmtIR s st) stmts
+
+stmtIR :: M_stmt -> ST -> I_stmt
+stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
+                             case t of
+                               M_int -> I_PRINT_I expr_ir
+                               M_bool -> I_PRINT_B expr_ir
+                               M_real -> I_PRINT_F expr_ir
+                               M_char -> I_PRINT_C expr_ir
+                               _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
 
 exprsIR :: [M_expr] -> ST -> [(I_expr,M_type)]
 exprsIR exprs st = map (\e -> exprIR e st) exprs
@@ -160,12 +212,19 @@ exprIR (M_ival i) st = ((I_IVAL i),M_int)
 exprIR (M_rval i) st = ((I_RVAL i),M_real)
 exprIR (M_bval i) st = ((I_BVAL i),M_bool)
 exprIR (M_cval i) st = ((I_CVAL i),M_char)
-exprIR (M_id (str,exprs)) st = ((I_ID (level,offset,indices)),t) where
+exprIR (M_id (str,exprs)) st = result where
     I_VARIABLE (level,offset,t,dims) = look_up st str
     indice_exprs = exprsIR exprs st
     all_ints = allInt $ map snd indice_exprs
     equal_dims = checkDims dims (length exprs)
     indices = map fst indice_exprs
+    result = case all_ints of
+                True -> case equal_dims of
+                            True -> ((I_ID (level,offset,indices)),t)
+                            False -> error ("TypeError: Incorrect dimensions for array '"++str++"':\n"
+                                            ++"\tProvided dimensions: "++(show (length exprs))++"\n"
+                                            ++"\tActual dimensions:   "++(show dims))
+                False -> error "TypeError: All array dimensions must be of type 'int'"
 
 typeIR :: M_type -> ST -> M_type
 typeIR M_int st = M_int
@@ -174,16 +233,26 @@ typeIR (M_type str) st = t where
     t = M_type str
 typeIR t st = t
 
+localVarCount :: ST -> Int
+localVarCount ((Sym_tbl (_,n,_,_)):rest) = n
+
 allInt :: [M_type] -> Bool
 allInt (t:ts) = case t of
                   M_int -> allInt ts
-                  _ -> error "Not an int found!!!"
+                  _ -> False
 allInt [] = True
 
 checkDims :: Int -> Int -> Bool
 checkDims n m 
     | n == m = True
-    | otherwise = error "Dims don't match!!!"
+    | otherwise = False
+
+getLastOffset :: ST -> Int
+getLastOffset ((Sym_tbl (_,_,_,(_,Var_attr (offset,_,_)):_)):_) = offset
+
+getSymDesc :: M_decl -> SYM_DESC
+getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
+--getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
 
 --generateIR :: AST -> IR
 --generateIR (M_prog (decls,stmts)) = I_PROG ([],(localVarCount $ head st),[],stmt_irs) where
@@ -202,8 +271,6 @@ checkDims n m
 
 ----arrayDescs :: ST -> [Array_desc]
 ----arrayDescs ((Sym_tbl (_,_,_,(varattrs:_)):_)
---localVarCount :: SYM_TABLE -> Int
---localVarCount (Sym_tbl (_,n,_,_)) = n
 
 --stmtsIR :: [M_stmt] -> ST -> [I_stmt]
 --stmtsIR stmts st = map (\stmt -> stmtIR stmt st) stmts
@@ -227,9 +294,6 @@ checkDims n m
 --                                0 -> False
 --                                _ -> True
 --isArray _ = False
-
---getLastOffset :: ST -> Int
---getLastOffset ((Sym_tbl (_,_,_,(_,Var_attr (offset,_,_)):_)):_) = offset
 
 --generateST :: AST -> ST
 --generateST (M_prog (decls,stmts)) = generateDeclST to_insert st' where
@@ -267,10 +331,6 @@ checkDims n m
 --  (n, st') = insert 0 st arg
 --insertArgs [] st = st
 
-getSymDesc :: M_decl -> SYM_DESC
-getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
-getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
-
 --getArgDesc :: (String,Int,M_type) -> SYM_DESC
 --getArgDesc (s,n,t) = ARGUMENT (s,t,n)
 
@@ -294,8 +354,8 @@ main = do
 
                     putStrLn ""
 
-                    --let ir = generateIR ast
-                    --print ir
+                    let ir = generateIR ast
+                    print ir
 
                 _ -> printErrors (filter isError ts)
         _ -> do

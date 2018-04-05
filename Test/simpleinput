@@ -1,0 +1,5 @@
+%var x:int;
+var y[3][3]:real;
+begin
+print y[1][2];
+end
