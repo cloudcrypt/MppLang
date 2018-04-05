@@ -172,14 +172,31 @@ funsIR (d:ds) st = (funIR d st)++(funsIR ds st)
 funsIR [] st = []
 
 collectTypeIR :: M_decl -> ST -> ST
+collectTypeIR (M_data (str,cons)) st = st'' where
+    (n, st') = insert 0 st (getSymDesc (M_data (str,cons)))
+    st'' = consIR str cons st'
 collectTypeIR _ st = st
+
+consIR :: String -> [(String,[M_type])] -> ST -> ST
+consIR datatype_name (con:cons) st = consIR datatype_name cons st' where
+    st' = conIR datatype_name con st
+consIR _ [] st = st
+
+conIR :: String -> (String,[M_type]) -> ST -> ST
+conIR datatype_name (str,types) st = st' where
+    types_ir = typesIR types st
+    (n, st') = case isTypes types_ir of
+                True -> insert 0 st (CONSTRUCTOR (str,types_ir,datatype_name))
+                _ -> error "bbbb!"
 
 varIR :: M_decl -> ST -> (ST, [Array_desc])
 varIR (M_var (str,exprs,t)) st = result where
     dim_exprs = exprsIR exprs $ tail st
     all_ints = allInt $ map snd dim_exprs
     type_ir = typeIR t st
-    (n, st') = insert 0 st (getSymDesc (M_var (str,exprs,type_ir)))
+    (n, st') = case isType type_ir of
+                True -> insert 0 st (getSymDesc (M_var (str,exprs,type_ir)))
+                _ -> error "aaaaa!"
     dims = map fst dim_exprs
     array_desc = case (length dims) > 0 of
                     True -> [((getLastOffset st'),dims)]
@@ -226,12 +243,30 @@ exprIR (M_id (str,exprs)) st = result where
                                             ++"\tActual dimensions:   "++(show dims))
                 False -> error "TypeError: All array dimensions must be of type 'int'"
 
+typesIR :: [M_type] -> ST -> [M_type]
+typesIR types st = map (\t -> typeIR t st) types
+
 typeIR :: M_type -> ST -> M_type
 typeIR M_int st = M_int
 typeIR (M_type str) st = t where
-    I_TYPE _ = look_up st str
-    t = M_type str
+    I_TYPE cons = look_up st str
+    t = case (length cons) > 0 of
+            True -> M_type str
+            _ -> error ("Type "++str++" not found!")
 typeIR t st = t
+
+isTypes :: [M_type] -> Bool
+isTypes (t:ts) = case isType t of
+                    True -> isTypes ts
+                    _ -> False
+isTypes [] = True
+
+isType :: M_type -> Bool
+isType M_int = True
+isType M_bool = True
+isType M_real = True
+isType M_char = True
+isType (M_type str) = True
 
 localVarCount :: ST -> Int
 localVarCount ((Sym_tbl (_,n,_,_)):rest) = n
@@ -252,6 +287,7 @@ getLastOffset ((Sym_tbl (_,_,_,(_,Var_attr (offset,_,_)):_)):_) = offset
 
 getSymDesc :: M_decl -> SYM_DESC
 getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
+getSymDesc (M_data (s, cons)) = DATATYPE (s, map fst cons)
 --getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
 
 --generateIR :: AST -> IR

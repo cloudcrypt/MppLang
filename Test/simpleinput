@@ -1,5 +1,8 @@
 %var x:int;
-var y[3][3]:real;
+%var y[3][3]:real;
+var x:intlist;
+data intlist = #NIL | #CONS of int * intlist;
 begin
-print y[1][2];
+print 4.3;
+%print x;
 end
