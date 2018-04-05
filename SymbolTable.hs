@@ -9,7 +9,7 @@ import Lexer
 data SYM_DESC = ARGUMENT (String,M_type,Int)
               | VARIABLE (String,M_type,Int)
               | FUNCTION (String,[(M_type,Int)],M_type)
-              | DATATYPE String 
+              | DATATYPE (String, [String])          -- Changed from DATATYPE String???
               | CONSTRUCTOR (String, [M_type], String)
     deriving (Show)
 
@@ -113,6 +113,14 @@ insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (FUNCTION (str,ts,t))
        | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
        | otherwise = (n+1,(Sym_tbl(sT,nL,nA,(str,Fun_attr("fn-label",ts,t)):sL)
                           ):rest)
+insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (DATATYPE (str, cons))
+       | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
+       | otherwise = (n,(Sym_tbl(sT,nL,nA,(str,Typ_attr cons):sL)
+                          ):rest)
+insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (CONSTRUCTOR (name,arg_types,type_str))
+       | (inIndexList name sL) = error ("Symbol table error: "++name++" is already defined.")
+       | otherwise = (n,(Sym_tbl(sT,nL,nA,(name,Con_attr (-1,arg_types,type_str)):sL)
+                          ):rest)
 
 inIndexList :: String -> [(String,SYM_VALUE)] -> Bool
 inIndexList str [] = False
@@ -123,9 +131,13 @@ inIndexList str ((x,_):xs)
 look_up:: ST -> String -> SYM_I_DESC
 look_up s x = find 0 s where
   found level (Var_attr(offset,t,dim)) 
-                =  I_VARIABLE(level,offset,t,dim)
+                = I_VARIABLE(level,offset,t,dim)
   found level (Fun_attr(label,arg_type,t)) 
                 = I_FUNCTION(level,label,arg_type,t)
+  found level (Typ_attr cons)
+                = I_TYPE cons
+  found level (Con_attr (num,arg_types,type_str))
+                = I_CONSTRUCTOR (num,arg_types,type_str)
   find_level ((str,v):rest) | x == str = Just v
                             | otherwise =  find_level rest
   find_level [] = Nothing
@@ -137,42 +149,78 @@ look_up s x = find 0 s where
 
 --return:: ST -> M_type
 
-generateIR :: AST -> IR
-generateIR (M_prog (decls,stmts)) = I_PROG ([],(localVarCount $ head st),[],stmt_irs) where
-    st = collect_decls decls (newscope L_PROG empty)
-    stmt_irs = stmtsIR stmts st
+--generateIR :: AST -> IR
+--generateIR (M_prog (decls,stmts)) =
 
-collect_decls :: [M_decl] -> ST -> ST
-collect_decls (decl:decls) st = collect_decls decls st' where
-    (n, st') = insert 0 st (getSymDesc decl)
-collect_decls [] st = st
+exprsIR :: [M_expr] -> ST -> [(I_expr,M_type)]
+exprsIR exprs st = map (\e -> exprIR e st) exprs
 
---collect_decl :: M_decl -> ST -> (ST, Maybe Array_desc)
---collect_decl decl st = let (n, st') = insert 0 st (getSymDesc d) in
---                        case isArray decl of
---                            True -> (st', Just )
-
---arrayDescs :: ST -> [Array_desc]
---arrayDescs ((Sym_tbl (_,_,_,(varattrs:_)):_)
-localVarCount :: SYM_TABLE -> Int
-localVarCount (Sym_tbl (_,n,_,_)) = n
-
-stmtsIR :: [M_stmt] -> ST -> [I_stmt]
-stmtsIR stmts st = map (\stmt -> stmtIR stmt st) stmts
-
-stmtIR :: M_stmt -> ST -> I_stmt
-stmtIR (M_print expr) st = let (expr_ir,t) = exprIR expr st in
-                            case t of
-                                M_int -> I_PRINT_I expr_ir
-                                M_bool -> I_PRINT_B expr_ir
-                                M_real -> I_PRINT_F expr_ir
-                                M_char -> I_PRINT_C expr_ir
-                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
-
-exprIR :: M_expr -> ST -> (I_expr, M_type)
+exprIR :: M_expr -> ST -> (I_expr,M_type)
 exprIR (M_ival i) st = ((I_IVAL i),M_int)
-exprIR (M_id (s,exprs)) st = (I_ID (level,offset,(map (\e -> fst $ exprIR e st) exprs)),t) where
-    I_VARIABLE (level,offset,t,_) = look_up st s
+exprIR (M_rval i) st = ((I_RVAL i),M_real)
+exprIR (M_bval i) st = ((I_BVAL i),M_bool)
+exprIR (M_cval i) st = ((I_CVAL i),M_char)
+exprIR (M_id (str,exprs)) st = ((I_ID (level,offset,indices)),t) where
+    I_VARIABLE (level,offset,t,dims) = look_up st str
+    indice_exprs = exprsIR exprs st
+    all_ints = allInt $ map snd indice_exprs
+    equal_dims = checkDims dims (length exprs)
+    indices = map fst indice_exprs
+
+typeIR :: M_type -> ST -> M_type
+typeIR M_int st = M_int
+typeIR (M_type str) st = t where
+    I_TYPE _ = look_up st str
+    t = M_type str
+typeIR t st = t
+
+allInt :: [M_type] -> Bool
+allInt (t:ts) = case t of
+                  M_int -> allInt ts
+                  _ -> error "Not an int found!!!"
+allInt [] = True
+
+checkDims :: Int -> Int -> Bool
+checkDims n m 
+    | n == m = True
+    | otherwise = error "Dims don't match!!!"
+
+--generateIR :: AST -> IR
+--generateIR (M_prog (decls,stmts)) = I_PROG ([],(localVarCount $ head st),[],stmt_irs) where
+--    st = collect_decls decls (newscope L_PROG empty)
+--    stmt_irs = stmtsIR stmts st
+
+--collect_decls :: [M_decl] -> ST -> ST
+--collect_decls (decl:decls) st = collect_decls decls st' where
+--    (n, st') = insert 0 st (getSymDesc decl)
+--collect_decls [] st = st
+
+----collect_decl :: M_decl -> ST -> (ST, Maybe Array_desc)
+----collect_decl decl st = let (n, st') = insert 0 st (getSymDesc d) in
+----                        case isArray decl of
+----                            True -> (st', Just )
+
+----arrayDescs :: ST -> [Array_desc]
+----arrayDescs ((Sym_tbl (_,_,_,(varattrs:_)):_)
+--localVarCount :: SYM_TABLE -> Int
+--localVarCount (Sym_tbl (_,n,_,_)) = n
+
+--stmtsIR :: [M_stmt] -> ST -> [I_stmt]
+--stmtsIR stmts st = map (\stmt -> stmtIR stmt st) stmts
+
+--stmtIR :: M_stmt -> ST -> I_stmt
+--stmtIR (M_print expr) st = let (expr_ir,t) = exprIR expr st in
+--                            case t of
+--                                M_int -> I_PRINT_I expr_ir
+--                                M_bool -> I_PRINT_B expr_ir
+--                                M_real -> I_PRINT_F expr_ir
+--                                M_char -> I_PRINT_C expr_ir
+--                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
+
+--exprIR :: M_expr -> ST -> (I_expr, M_type)
+--exprIR (M_ival i) st = ((I_IVAL i),M_int)
+--exprIR (M_id (s,exprs)) st = (I_ID (level,offset,(map (\e -> fst $ exprIR e st) exprs)),t) where
+--    I_VARIABLE (level,offset,t,_) = look_up st s
 
 --isArray :: M_decl -> Bool
 --isArray (M_var (_,exprs,_)) = case length exprs of
@@ -246,8 +294,8 @@ main = do
 
                     putStrLn ""
 
-                    let ir = generateIR ast
-                    print ir
+                    --let ir = generateIR ast
+                    --print ir
 
                 _ -> printErrors (filter isError ts)
         _ -> do
