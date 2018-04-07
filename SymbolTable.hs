@@ -213,6 +213,12 @@ stmtsIR :: [M_stmt] -> ST -> [I_stmt]
 stmtsIR stmts st = map (\s -> stmtIR s st) stmts
 
 stmtIR :: M_stmt -> ST -> I_stmt
+stmtIR (M_ass (str, exprs, expr)) st = result where
+    ((I_ID (level,offset,indices)),t1) = exprIR (M_id (str,exprs)) st
+    (expr_ir,t2) = exprIR expr st
+    result = case equalType t1 t2 of
+                True -> I_ASS (level,offset,indices,expr_ir)
+                _ -> error "so sad! this will never get printed!"
 stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
                              case t of
                                M_int -> I_PRINT_I expr_ir
@@ -267,6 +273,11 @@ isType M_bool = True
 isType M_real = True
 isType M_char = True
 isType (M_type str) = True
+
+equalType :: M_type -> M_type -> Bool
+equalType t1 t2 
+    | t1 == t2 = True
+    | otherwise = error "LOLOLOL!"
 
 localVarCount :: ST -> Int
 localVarCount ((Sym_tbl (_,n,_,_)):rest) = n
