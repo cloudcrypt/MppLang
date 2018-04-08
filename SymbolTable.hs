@@ -267,6 +267,13 @@ operationIR M_eq st types = getOp3 M_eq types [I_EQ_I,I_EQ_F,I_EQ_C] [M_int, M_r
 operationIR M_not st types = getOp1 M_not types [I_NOT] [M_bool]
 operationIR M_and st types = getOp1 M_and types [I_AND] [M_bool]
 operationIR M_or st types = getOp1 M_or types [I_OR] [M_bool]
+operationIR (M_cid str) st types = result where
+    I_CONSTRUCTOR (num,arg_types,type_str) = look_up st str
+    result = case types == arg_types of
+                True -> (I_CONS (num, (length arg_types)), (M_type type_str))
+                False -> error ("TypeError: Incorrect arguments to constructor '"++str++"':\n"
+                                ++"\tProvided arguments: ("++(intercalate ", " $ map printType types)++")"++"\n"
+                                ++"\tActual arguments:   ("++(intercalate ", " $ map printType arg_types)++")")
 
 getOp1 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
 getOp1 op types possible_ops allowed = result where

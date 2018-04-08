@@ -1,9 +1,7 @@
 %var x:int;
 %var y[3][3]:real;
-var a:bool;
-var b:bool;
+data intlist = #NIL | #CONS of int * intlist;
+var L:intlist;
 begin
-%x[5][6] := 5;
-a := "a" >= "b";
-%x(1,2,3);
+L:= #CONS(1,#CONS(2,#CONS(3,#NIL)));
 end
