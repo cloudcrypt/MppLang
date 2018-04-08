@@ -3,6 +3,7 @@ module Main where
 import Prelude hiding (LT, GT)
 import System.Environment
 import System.IO
+import Data.List hiding (insert)
 import Parser
 import Lexer
 
@@ -248,6 +249,48 @@ exprIR (M_id (str,exprs)) st = result where
                                             ++"\tProvided dimensions: "++(show (length exprs))++"\n"
                                             ++"\tActual dimensions:   "++(show dims))
                 False -> error "TypeError: All array dimensions must be of type 'int'"
+exprIR (M_app (op,exprs)) st = (I_APP (op_ir,(map fst expr_irs)),t) where
+    expr_irs = exprsIR exprs st
+    (op_ir, t) = operationIR op st (map snd expr_irs)
+
+operationIR :: M_operation -> ST -> [M_type] -> (I_opn, M_type)
+operationIR M_add st types = getOp2 M_add types [I_ADD_I,I_ADD_F] [M_int, M_real]
+operationIR M_mul st types = getOp2 M_mul types [I_MUL_I,I_MUL_F] [M_int, M_real]
+operationIR M_sub st types = getOp2 M_sub types [I_SUB_I,I_SUB_F] [M_int, M_real]
+operationIR M_div st types = getOp2 M_div types [I_DIV_I,I_DIV_F] [M_int, M_real]
+operationIR M_neg st types = getOp2 M_neg types [I_NEG_I,I_NEG_F] [M_int, M_real]
+operationIR M_lt st types = getOp3 M_lt types [I_LT_I,I_LT_F,I_LT_C] [M_int, M_real, M_char]
+operationIR M_le st types = getOp3 M_le types [I_LE_I,I_LE_F,I_LE_C] [M_int, M_real, M_char]
+operationIR M_gt st types = getOp3 M_gt types [I_GT_I,I_GT_F,I_GT_C] [M_int, M_real, M_char]
+operationIR M_ge st types = getOp3 M_ge types [I_GE_I,I_GE_F,I_GE_C] [M_int, M_real, M_char]
+operationIR M_eq st types = getOp3 M_eq types [I_EQ_I,I_EQ_F,I_EQ_C] [M_int, M_real, M_char]
+operationIR M_not st types = getOp1 M_not types [I_NOT] [M_bool]
+operationIR M_and st types = getOp1 M_and types [I_AND] [M_bool]
+operationIR M_or st types = getOp1 M_or types [I_OR] [M_bool]
+
+getOp1 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
+getOp1 op types possible_ops allowed = result where
+    t = sameTypes types
+    result = case t of
+            Just M_bool -> ((possible_ops !! 0), M_bool)
+            _ -> error $ opTypeError op allowed
+
+getOp2 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
+getOp2 op types possible_ops allowed = result where
+    t = sameTypes types
+    result = case t of
+            Just M_int -> ((possible_ops !! 0), M_int)
+            Just M_real -> ((possible_ops !! 1), M_real)
+            _ -> error $ opTypeError op allowed
+
+getOp3 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
+getOp3 op types possible_ops allowed = result where
+    t = sameTypes types
+    result = case t of
+            Just M_int -> ((possible_ops !! 0), M_bool)
+            Just M_real -> ((possible_ops !! 1), M_bool)
+            Just M_char -> ((possible_ops !! 2), M_bool)
+            _ -> error $ opTypeError op allowed
 
 typesIR :: [M_type] -> ST -> [M_type]
 typesIR types st = map (\t -> typeIR t st) types
@@ -279,6 +322,18 @@ equalType t1 t2
     | t1 == t2 = True
     | otherwise = error "LOLOLOL!"
 
+opTypeError :: M_operation -> [M_type] -> String
+opTypeError op allowed = error ("TypeError: All expressions supplied to '"
+                                ++(printOp op)++"' must be of type "
+                                ++(optionString allowed))
+
+optionString :: [M_type] -> String
+optionString options
+    | (length options) > 1 = (intercalate ", " $ init types)++" or "++(last types)
+    | otherwise = last types
+        where
+            types = map printType options
+
 localVarCount :: ST -> Int
 localVarCount ((Sym_tbl (_,n,_,_)):rest) = n
 
@@ -287,6 +342,12 @@ allInt (t:ts) = case t of
                   M_int -> allInt ts
                   _ -> False
 allInt [] = True
+
+sameTypes :: [M_type] -> Maybe M_type
+sameTypes [] = Nothing
+sameTypes (t:ts) = case all (== t) ts of
+                    True -> Just t
+                    False -> Nothing
 
 checkDims :: Int -> Int -> Bool
 checkDims n m 

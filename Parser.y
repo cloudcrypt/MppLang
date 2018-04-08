@@ -346,6 +346,7 @@ printExpr (M_app (M_fn s, exprs)) = s++"("++(intercalate "," $ map (\e -> printE
 printExpr (M_app (M_cid s, exprs)) = s++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
 printExpr (M_app (M_float, exprs)) = "float"++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
 printExpr (M_app (M_floor, exprs)) = "floor"++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
+printExpr (M_app (M_neg, exprs)) = (printOp M_neg)++(printExpr (exprs !! 0))
 printExpr (M_app (op, exprs)) = (printExpr (exprs !! 0))++(printOp op)++(printExpr (exprs !! 1))
 
 -- | Function to convert a identifier or identifier with array dimensions and info back to readable code
