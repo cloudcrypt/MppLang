@@ -1,7 +1,9 @@
-%var x:int;
+var x:int;
+var y:real;
 %var y[3][3]:real;
-data intlist = #NIL | #CONS of int * intlist;
-var L:intlist;
+%data intlist = #NIL | #CONS of int * intlist;
+%var L:intlist;
 begin
-L:= #CONS(1,#CONS(2,#CONS(3,#NIL)));
+%L:= #CONS(1,#CONS(2,#CONS(3,#NIL)));
+x := ceil(1);
 end

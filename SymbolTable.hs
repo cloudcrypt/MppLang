@@ -267,6 +267,21 @@ operationIR M_eq st types = getOp3 M_eq types [I_EQ_I,I_EQ_F,I_EQ_C] [M_int, M_r
 operationIR M_not st types = getOp1 M_not types [I_NOT] [M_bool]
 operationIR M_and st types = getOp1 M_and types [I_AND] [M_bool]
 operationIR M_or st types = getOp1 M_or types [I_OR] [M_bool]
+operationIR M_float st types = result where
+    t = sameTypes types
+    result = case t of
+            Just M_int -> (I_FLOAT, M_real)
+            _ -> error $ argsError (printOp M_float) types [M_int]
+operationIR M_floor st types = result where
+    t = sameTypes types
+    result = case t of
+            Just M_real -> (I_FLOOR, M_int)
+            _ -> error $ argsError (printOp M_floor) types [M_real]
+operationIR M_ceil st types = result where
+    t = sameTypes types
+    result = case t of
+            Just M_real -> (I_CEIL, M_int)
+            _ -> error $ argsError (printOp M_ceil) types [M_real]
 operationIR (M_cid str) st types = result where
     I_CONSTRUCTOR (num,arg_types,type_str) = look_up st str
     result = case types == arg_types of
@@ -333,6 +348,11 @@ opTypeError :: M_operation -> [M_type] -> String
 opTypeError op allowed = error ("TypeError: All expressions supplied to '"
                                 ++(printOp op)++"' must be of type "
                                 ++(optionString allowed))
+
+argsError :: String -> [M_type] -> [M_type] -> String
+argsError id provided actual = ("TypeError: Incorrect arguments to function '"++id++"':\n"
+                                ++"\tProvided arguments: ("++(intercalate ", " $ map printType provided)++")"++"\n"
+                                ++"\tActual arguments:   ("++(intercalate ", " $ map printType actual)++")")
 
 optionString :: [M_type] -> String
 optionString options

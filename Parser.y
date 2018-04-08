@@ -345,6 +345,7 @@ printExpr (M_id (s, exprs)) = printArrayDecl s exprs
 printExpr (M_app (M_fn s, exprs)) = s++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
 printExpr (M_app (M_cid s, exprs)) = s++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
 printExpr (M_app (M_float, exprs)) = "float"++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
+printExpr (M_app (M_ceil, exprs)) = "ceil"++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
 printExpr (M_app (M_floor, exprs)) = "floor"++"("++(intercalate "," $ map (\e -> printExpr e) exprs)++")"
 printExpr (M_app (M_neg, exprs)) = (printOp M_neg)++(printExpr (exprs !! 0))
 printExpr (M_app (op, exprs)) = (printExpr (exprs !! 0))++(printOp op)++(printExpr (exprs !! 1))
