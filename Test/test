@@ -1,9 +1,13 @@
-var x[1]:int;
-var y:int;
+var x[5]:int;
+var y[11]:int;
 %var y[3][3]:real;
 %data intlist = #NIL | #CONS of int * intlist;
 %var L:intlist;
 begin
 %L:= #CONS(1,#CONS(2,#CONS(3,#NIL)));
-y := size(x);
+if x[2]=<y[5] 
+then 
+	print y[1];
+else
+	read y[1];
 end

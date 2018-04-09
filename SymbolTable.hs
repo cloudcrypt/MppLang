@@ -222,6 +222,27 @@ stmtIR (M_ass (str, exprs, expr)) st = result where
                 _ -> error ("TypeError: Type mismatch in assignment:\n"
                             ++"\tType of '"++str++"' is '"++(printType t1)
                             ++"', but type of expression is '"++(printType t2)++"'")
+stmtIR (M_while (expr, stmt)) st = result where
+    (expr_ir,t) = exprIR expr st
+    stmt_ir = stmtIR stmt st
+    result = case t of
+                M_bool -> I_WHILE (expr_ir,stmt_ir)
+                _ -> error ("TypeError: While statement expression must be of type "++(printType M_bool))
+stmtIR (M_cond (expr,s1,s2)) st = result where
+    (expr_ir,t) = exprIR expr st
+    s1_ir = stmtIR s1 st
+    s2_ir = stmtIR s2 st
+    result = case t of
+                M_bool -> I_COND (expr_ir,s1_ir,s2_ir)
+                _ -> error ("TypeError: If statement expression must be of type "++(printType M_bool))
+stmtIR (M_read (str,exprs)) st = result where
+    ((I_ID (level,offset,indices)),t) = exprIR (M_id (str,exprs)) st
+    result = case t of
+                M_int -> I_READ_I (level,offset,indices)
+                M_bool -> I_READ_B (level,offset,indices)
+                M_real -> I_READ_F (level,offset,indices)
+                M_char -> I_READ_C (level,offset,indices)
+                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to read")
 stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
                              case t of
                                M_int -> I_PRINT_I expr_ir
@@ -229,6 +250,8 @@ stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
                                M_real -> I_PRINT_F expr_ir
                                M_char -> I_PRINT_C expr_ir
                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
+stmtIR (M_return expr) st = I_RETURN (fst $ exprIR expr st)
+stmtIR lol st = error ("recieved: "++(show lol))
 
 exprsIR :: [M_expr] -> ST -> [(I_expr,M_type)]
 exprsIR exprs st = map (\e -> exprIR e st) exprs
