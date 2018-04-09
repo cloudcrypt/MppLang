@@ -217,12 +217,12 @@ conIR datatype_name (str,types) st = st' where
 varIR :: M_decl -> ST -> (ST, [Array_desc])
 varIR (M_var (str,exprs,t)) st = result where
     dim_exprs = exprsIR exprs $ tail st
-    all_ints = allInt $ map snd dim_exprs
+    all_ints = allInt $ map t_snd dim_exprs
     type_ir = typeIR t st
     (n, st') = case isType type_ir of
                 True -> insert 0 st (getSymDesc (M_var (str,exprs,type_ir)))
                 _ -> error "aaaaa!"
-    dims = map fst dim_exprs
+    dims = map t_fst dim_exprs
     array_desc = case (length dims) > 0 of
                     True -> [((getLastOffset st'),dims)]
                     False -> []
@@ -239,7 +239,7 @@ funIR (M_fun (str,args,t,decls,stmts)) st = result where
     fun_irs = funsIR decls st'''
     stmt_irs = stmtsIR stmts st'''
     M_return return_expr = last stmts
-    result = let pt = (snd (exprIR return_expr st''')) in case pt == t of
+    result = let pt = (t_snd (exprIR return_expr st''')) in case pt == t of
                 True -> [I_FUN (str,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)]
                 _ -> error ("TypeError: Return type mismatch for function '"++str++"'\n"
                             ++"\tProvided return type: '"++(printType pt)++"'\n"
@@ -263,42 +263,42 @@ stmtsIR stmts st = map (\s -> stmtIR s st) stmts
 
 stmtIR :: M_stmt -> ST -> I_stmt
 stmtIR (M_ass (str, exprs, expr)) st = result where
-    ((I_ID (level,offset,indices)),t1) = exprIR (M_id (str,exprs)) st
-    (expr_ir,t2) = exprIR expr st
-    result = case t1 == t2 of
+    ((I_ID (level,offset,indices)),t1,_) = exprIR (M_id (str,exprs)) st
+    (expr_ir,t2,_) = exprIR expr st
+    result = case t1 == t2 of    -- can you do var x[4][4]:int; var y[4]; x[1] := y;???
                 True -> I_ASS (level,offset,indices,expr_ir)
                 _ -> error ("TypeError: Type mismatch in assignment:\n"
                             ++"\tType of '"++str++"' is '"++(printType t1)
                             ++"', but type of expression is '"++(printType t2)++"'")
 stmtIR (M_while (expr, stmt)) st = result where
-    (expr_ir,t) = exprIR expr st
+    (expr_ir,t,_) = exprIR expr st
     stmt_ir = stmtIR stmt st
     result = case t of
                 M_bool -> I_WHILE (expr_ir,stmt_ir)
                 _ -> error ("TypeError: While statement expression must be of type "++(printType M_bool))
 stmtIR (M_cond (expr,s1,s2)) st = result where
-    (expr_ir,t) = exprIR expr st
+    (expr_ir,t,_) = exprIR expr st
     s1_ir = stmtIR s1 st
     s2_ir = stmtIR s2 st
     result = case t of
                 M_bool -> I_COND (expr_ir,s1_ir,s2_ir)
                 _ -> error ("TypeError: If statement expression must be of type "++(printType M_bool))
 stmtIR (M_read (str,exprs)) st = result where
-    ((I_ID (level,offset,indices)),t) = exprIR (M_id (str,exprs)) st
+    ((I_ID (level,offset,indices)),t,_) = exprIR (M_id (str,exprs)) st
     result = case t of
                 M_int -> I_READ_I (level,offset,indices)
                 M_bool -> I_READ_B (level,offset,indices)
                 M_real -> I_READ_F (level,offset,indices)
                 M_char -> I_READ_C (level,offset,indices)
                 _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to read")
-stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
+stmtIR (M_print expr) st = let (expr_ir, t, _) = exprIR expr st in
                              case t of
                                M_int -> I_PRINT_I expr_ir
                                M_bool -> I_PRINT_B expr_ir
                                M_real -> I_PRINT_F expr_ir
                                M_char -> I_PRINT_C expr_ir
                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
-stmtIR (M_return expr) st = I_RETURN (fst $ exprIR expr st)
+stmtIR (M_return expr) st = I_RETURN (t_fst $ exprIR expr st)
 stmtIR (M_block (decls,stmts)) st = I_BLOCK (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
     st' = collectTypesIR decls (newscope L_BLK st)
     (st'', array_descs) = varsIR decls st'
@@ -306,38 +306,38 @@ stmtIR (M_block (decls,stmts)) st = I_BLOCK (fun_irs,(localVarCount st''),array_
     stmt_irs = stmtsIR stmts st''
 stmtIR lol st = error ("recieved: "++(show lol))
 
-exprsIR :: [M_expr] -> ST -> [(I_expr,M_type)]
+exprsIR :: [M_expr] -> ST -> [(I_expr,M_type,Int)]
 exprsIR exprs st = map (\e -> exprIR e st) exprs
 
-exprIR :: M_expr -> ST -> (I_expr,M_type)
-exprIR (M_ival i) st = ((I_IVAL i),M_int)
-exprIR (M_rval i) st = ((I_RVAL i),M_real)
-exprIR (M_bval i) st = ((I_BVAL i),M_bool)
-exprIR (M_cval i) st = ((I_CVAL i),M_char)
+exprIR :: M_expr -> ST -> (I_expr,M_type,Int)
+exprIR (M_ival i) st = ((I_IVAL i),M_int,0)
+exprIR (M_rval i) st = ((I_RVAL i),M_real,0)
+exprIR (M_bval i) st = ((I_BVAL i),M_bool,0)
+exprIR (M_cval i) st = ((I_CVAL i),M_char,0)
 exprIR (M_size (str,n)) st = result where
     I_VARIABLE (level,offset,t,dims) = look_up_verify ST_VAR st str
     result = case n < dims of
-        True -> (I_SIZE (level,offset,n+1),M_int)
+        True -> (I_SIZE (level,offset,n+1),M_int,0)
         False -> error ("TypeError: '"++str++"' at dimension "++(show n)
                         ++" is not a valid input for function 'size'") 
-exprIR (M_id (str,exprs)) st = result where
+exprIR (M_id (str,exprs)) st = result where -- this might be wrong, check this! (see above can you do?)
     I_VARIABLE (level,offset,t,dims) = look_up_verify ST_VAR st str
     indice_exprs = exprsIR exprs st
-    all_ints = allInt $ map snd indice_exprs
+    all_ints = allInt $ map t_snd indice_exprs
     equal_dims = checkDims dims (length exprs)
-    indices = map fst indice_exprs
+    indices = map t_fst indice_exprs
     result = case all_ints of
                 True -> case equal_dims of
-                            True -> ((I_ID (level,offset,indices)),t)
+                            True -> ((I_ID (level,offset,indices)),t,(length exprs))
                             False -> error ("TypeError: Incorrect dimensions for array '"++str++"':\n"
                                             ++"\tProvided dimensions: "++(show (length exprs))++"\n"
                                             ++"\tActual dimensions:   "++(show dims))
                 False -> error "TypeError: All array dimensions must be of type 'int'"
-exprIR (M_app (op,exprs)) st = (I_APP (op_ir,(map fst expr_irs)),t) where
+exprIR (M_app (op,exprs)) st = (I_APP (op_ir,(map t_fst expr_irs)),t,dims) where
     expr_irs = exprsIR exprs st
-    (op_ir, t) = operationIR op st (map snd expr_irs)
+    (op_ir, t, dims) = operationIR op st (map (\(a,b,c) -> (b,c)) expr_irs)
 
-operationIR :: M_operation -> ST -> [M_type] -> (I_opn, M_type)
+operationIR :: M_operation -> ST -> [(M_type, Int)] -> (I_opn, M_type, Int)
 operationIR M_add st types = getOp2 M_add types [I_ADD_I,I_ADD_F] [M_int, M_real]
 operationIR M_mul st types = getOp2 M_mul types [I_MUL_I,I_MUL_F] [M_int, M_real]
 operationIR M_sub st types = getOp2 M_sub types [I_SUB_I,I_SUB_F] [M_int, M_real]
@@ -352,50 +352,57 @@ operationIR M_not st types = getOp1 M_not types [I_NOT] [M_bool]
 operationIR M_and st types = getOp1 M_and types [I_AND] [M_bool]
 operationIR M_or st types = getOp1 M_or types [I_OR] [M_bool]
 operationIR M_float st types = result where
-    t = sameTypes types
+    t = sameTypes $ map fst types
     result = case t of
-            Just M_int -> (I_FLOAT, M_real)
-            _ -> error $ argsError (printOp M_float) types [M_int]
+            Just M_int -> (I_FLOAT, M_real, 0)
+            _ -> error $ argsError (printOp M_float) (map fst types) [M_int]
 operationIR M_floor st types = result where
-    t = sameTypes types
+    t = sameTypes $ map fst types
     result = case t of
-            Just M_real -> (I_FLOOR, M_int)
-            _ -> error $ argsError (printOp M_floor) types [M_real]
+            Just M_real -> (I_FLOOR, M_int, 0)
+            _ -> error $ argsError (printOp M_floor) (map fst types) [M_real]
 operationIR M_ceil st types = result where
-    t = sameTypes types
+    t = sameTypes $ map fst types
     result = case t of
-            Just M_real -> (I_CEIL, M_int)
-            _ -> error $ argsError (printOp M_ceil) types [M_real]
+            Just M_real -> (I_CEIL, M_int, 0)
+            _ -> error $ argsError (printOp M_ceil) (map fst types) [M_real]
 operationIR (M_cid str) st types = result where
     I_CONSTRUCTOR (num,arg_types,type_str) = look_up_verify ST_CON st str
-    result = case types == arg_types of
-                True -> (I_CONS (num, (length arg_types)), (M_type type_str))
+    result = case (map fst types) == arg_types of
+                True -> (I_CONS (num, (length arg_types)), (M_type type_str), 0)
                 False -> error ("TypeError: Incorrect arguments to constructor '"++str++"':\n"
-                                ++"\tProvided arguments: ("++(intercalate ", " $ map printType types)++")"++"\n"
+                                ++"\tProvided arguments: ("++(intercalate ", " $ map printType $ map fst types)++")"++"\n"
                                 ++"\tActual arguments:   ("++(intercalate ", " $ map printType arg_types)++")")
+operationIR (M_fn str) st types = result where
+    I_FUNCTION (level,label,argTypes,t) = look_up_verify ST_FUN st str
+    result = case argTypes == types of
+                True -> (I_CALL (label,level), t, 0)
+                False -> error ("TypeError: Incorrect arguments to function '"++str++"':\n"
+                                ++"\tProvided arguments: ("++(intercalate ", " $ map (\(tp,n) -> ("(Type: '"++(printType tp)++"', Dimensions: "++(show n)++")")) types)++")"++"\n"
+                                ++"\tActual arguments:   ("++(intercalate ", " $ map (\(tp,n) -> ("(Type: '"++(printType tp)++"', Dimensions: "++(show n)++")")) argTypes)++")")
 
-getOp1 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
+getOp1 :: M_operation -> [(M_type, Int)] -> [I_opn] -> [M_type] -> (I_opn, M_type, Int)
 getOp1 op types possible_ops allowed = result where
-    t = sameTypes types
+    t = sameTypes $ map fst types
     result = case t of
-            Just M_bool -> ((possible_ops !! 0), M_bool)
+            Just M_bool -> ((possible_ops !! 0), M_bool, 0)
             _ -> error $ opTypeError op allowed
 
-getOp2 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
+getOp2 :: M_operation -> [(M_type, Int)] -> [I_opn] -> [M_type] -> (I_opn, M_type, Int)
 getOp2 op types possible_ops allowed = result where
-    t = sameTypes types
+    t = sameTypes $ map fst types
     result = case t of
-            Just M_int -> ((possible_ops !! 0), M_int)
-            Just M_real -> ((possible_ops !! 1), M_real)
+            Just M_int -> ((possible_ops !! 0), M_int, 0)
+            Just M_real -> ((possible_ops !! 1), M_real, 0)
             _ -> error $ opTypeError op allowed
 
-getOp3 :: M_operation -> [M_type] -> [I_opn] -> [M_type] -> (I_opn, M_type)
+getOp3 :: M_operation -> [(M_type, Int)] -> [I_opn] -> [M_type] -> (I_opn, M_type, Int)
 getOp3 op types possible_ops allowed = result where
-    t = sameTypes types
+    t = sameTypes $ map fst types
     result = case t of
-            Just M_int -> ((possible_ops !! 0), M_bool)
-            Just M_real -> ((possible_ops !! 1), M_bool)
-            Just M_char -> ((possible_ops !! 2), M_bool)
+            Just M_int -> ((possible_ops !! 0), M_bool, 0)
+            Just M_real -> ((possible_ops !! 1), M_bool, 0)
+            Just M_char -> ((possible_ops !! 2), M_bool, 0)
             _ -> error $ opTypeError op allowed
 
 typesIR :: [M_type] -> ST -> [M_type]
@@ -475,6 +482,15 @@ getSymDesc :: M_decl -> SYM_DESC
 getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
 getSymDesc (M_data (s, cons)) = DATATYPE (s, map fst cons)
 --getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
+
+t_fst :: (a,b,c) -> a
+t_fst (a,_,_) = a
+
+t_snd :: (a,b,c) -> b
+t_snd (_,b,_) = b
+
+t_trd :: (a,b,c) -> c
+t_trd (_,_,c) = c
 
 --generateIR :: AST -> IR
 --generateIR (M_prog (decls,stmts)) = I_PROG ([],(localVarCount $ head st),[],stmt_irs) where

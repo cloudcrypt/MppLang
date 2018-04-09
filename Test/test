@@ -1,10 +1,12 @@
-var x:int;
-data intlist = #NIL
-			 | #CONS of int * intlist;
-fun f(y[]:int):int
+%var x[1][1]:int;
+var y:int;
+%data intlist = #NIL
+%			 | #CONS of int * intlist;
+fun f(y:int):int
 {
-	var x:int;
+	%var x:int;
 	return y;
 };
 begin
+y := f(y);
 end
