@@ -1,5 +1,5 @@
-%var x[1][1]:int;
-var y[1]:int;
+var x:int;
+var y[1][1]:int;
 %data intlist = #NIL
 %			 | #CONS of int * intlist;
 fun f(y[]:int):int
@@ -8,5 +8,5 @@ fun f(y[]:int):int
 	return 6;
 };
 begin
-y := f(y[1]);
+x := f(y);
 end

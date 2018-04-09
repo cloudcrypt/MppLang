@@ -311,6 +311,20 @@ stmtIR lol st = error ("recieved: "++(show lol))
 exprsIR :: [M_expr] -> ST -> [(I_expr,M_type,Int)]
 exprsIR exprs st = map (\e -> exprIR e st) exprs
 
+argExprsIR :: [M_expr] -> ST -> [(I_expr,M_type,Int)]
+argExprsIR ((M_id e):es) st = (refIR (M_id e) st):(argExprsIR es st)
+argExprsIR (e:es) st = (exprIR e st):(argExprsIR es st)
+argExprsIR [] st = []
+
+refIR :: M_expr -> ST -> (I_expr,M_type,Int)
+refIR (M_id (str,exprs)) st = result where
+    I_VARIABLE (level,offset,t,dims) = look_up_verify ST_VAR st str
+    result = case (length exprs) > 0 of
+                False -> case dims > 0 of
+                            True -> (I_REF (level,offset),t,dims)
+                            False -> (I_ID (level,offset,[]),t,0)
+                True -> error "invalid array thing to function call!"
+
 exprIR :: M_expr -> ST -> (I_expr,M_type,Int)
 exprIR (M_ival i) st = ((I_IVAL i),M_int,0)
 exprIR (M_rval i) st = ((I_RVAL i),M_real,0)
@@ -336,7 +350,7 @@ exprIR (M_id (str,exprs)) st = result where -- this might be wrong, check this! 
                                             ++"\tActual dimensions:   "++(show dims))
                 False -> error "TypeError: All array dimensions must be of type 'int'"
 exprIR (M_app ((M_fn str),exprs)) st = (I_APP (op_ir,(map t_fst expr_irs)),t,dims) where
-    expr_irs = exprsIR exprs st
+    expr_irs = argExprsIR exprs st
     (op_ir, t, dims) = operationIR (M_fn str) st (map (\(a,b,c) -> (b,c)) expr_irs)
 exprIR (M_app (op,exprs)) st = (I_APP (op_ir,(map t_fst expr_irs)),t,dims) where
     expr_irs = exprsIR exprs st
