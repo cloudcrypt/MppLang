@@ -232,7 +232,21 @@ varIR (M_var (str,exprs,t)) st = result where
 varIR _ st = (st, [])
 
 funIR :: M_decl -> ST -> [I_fbody]
+funIR (M_fun (str,args,t,decls,stmts)) st = [I_FUN (str,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)] where
+    st' = collectArgs (reverse args) (newscope (L_FUN t) st)
+    st'' = collectTypesIR decls st'
+    (st''', array_descs) = varsIR decls st''
+    fun_irs = funsIR decls st'''
+    stmt_irs = stmtsIR stmts st'''
 funIR _ st = []
+
+collectArgs :: [(String,Int,M_type)] -> ST -> ST
+collectArgs (arg:args) st = collectArgs args st' where
+    st' = collectArg arg st
+collectArgs [] st = st 
+
+collectArg :: (String,Int,M_type) -> ST -> ST
+collectArg (str,dim,t) st = snd $ insert 0 st (ARGUMENT (str,t,dim))
 
 stmtsIR :: [M_stmt] -> ST -> [I_stmt]
 stmtsIR stmts st = map (\s -> stmtIR s st) stmts
@@ -423,6 +437,9 @@ optionString options
 
 localVarCount :: ST -> Int
 localVarCount ((Sym_tbl (_,n,_,_)):rest) = n
+
+argsCount :: ST -> Int
+argsCount ((Sym_tbl (_,_,n,_)):rest) = n
 
 allInt :: [M_type] -> Bool
 allInt (t:ts) = case t of
