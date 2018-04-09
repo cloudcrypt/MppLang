@@ -1,21 +1,10 @@
-var x[5]:int;
-var y[11]:int;
-var z[11]:int;
-%var y[3][3]:real;
-%data intlist = #NIL | #CONS of int * intlist;
-%var L:intlist;
-begin
-%L:= #CONS(1,#CONS(2,#CONS(3,#NIL)));
+var x:int;
+data intlist = #NIL
+			 | #CONS of int * intlist;
+fun f(y[]:int):int
 {
-	var z:int;
-	data intlist = #NIL | #CONS of int * intlist;
-	var L:intlist;
-	begin
-	print x[1];
-	print y[2]+z;
-	L := #CONS(1,#NIL);
-	z := size(y);
-	end
+	var x:int;
+	return y;
 };
-%L := #CONS(1,#NIL);
+begin
 end

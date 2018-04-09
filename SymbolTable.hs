@@ -149,7 +149,7 @@ look_up s x = find 0 s where
   find_level ((str,v):rest) | x == str = Just v
                             | otherwise =  find_level rest
   find_level [] = Nothing
-  find n [] = error ("Could not find "++x)
+  find n [] = error ("ScopeError: '"++x++"' could not be found in scope")
   find n (Sym_tbl(_,_,_,vs):rest) = 
          (case find_level vs of 
           Just v -> found n v
@@ -232,12 +232,18 @@ varIR (M_var (str,exprs,t)) st = result where
 varIR _ st = (st, [])
 
 funIR :: M_decl -> ST -> [I_fbody]
-funIR (M_fun (str,args,t,decls,stmts)) st = [I_FUN (str,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)] where
+funIR (M_fun (str,args,t,decls,stmts)) st = result where
     st' = collectArgs (reverse args) (newscope (L_FUN t) st)
     st'' = collectTypesIR decls st'
     (st''', array_descs) = varsIR decls st''
     fun_irs = funsIR decls st'''
     stmt_irs = stmtsIR stmts st'''
+    M_return return_expr = last stmts
+    result = let pt = (snd (exprIR return_expr st''')) in case pt == t of
+                True -> [I_FUN (str,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)]
+                _ -> error ("TypeError: Return type mismatch for function '"++str++"'\n"
+                            ++"\tProvided return type: '"++(printType pt)++"'\n"
+                            ++"\tActual return type:   '"++(printType t)++"'")
 funIR _ st = []
 
 collectArgs :: [(String,Int,M_type)] -> ST -> ST
@@ -246,7 +252,11 @@ collectArgs (arg:args) st = collectArgs args st' where
 collectArgs [] st = st 
 
 collectArg :: (String,Int,M_type) -> ST -> ST
-collectArg (str,dim,t) st = snd $ insert 0 st (ARGUMENT (str,t,dim))
+collectArg (str,dim,t) st = result where
+    type_ir = typeIR t st
+    result = case isType type_ir of
+                True -> snd $ insert 0 st (ARGUMENT (str,t,dim))
+                _ -> error "An unexpected error has occured (collectArg)"
 
 stmtsIR :: [M_stmt] -> ST -> [I_stmt]
 stmtsIR stmts st = map (\s -> stmtIR s st) stmts
