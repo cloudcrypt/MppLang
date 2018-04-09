@@ -215,12 +215,14 @@ conIR datatype_name (str,types) st = st' where
                 _ -> error "bbbb!"
 
 varIR :: M_decl -> ST -> (ST, [Array_desc])
-varIR (M_var (str,exprs,t)) st = result where
+varIR f@(M_fun (str,args,t,decls,stmts)) st = (st', []) where
+    (n, st') = insert 0 st (getSymDesc f)
+varIR v@(M_var (str,exprs,t)) st = result where
     dim_exprs = exprsIR exprs $ tail st
     all_ints = allInt $ map t_snd dim_exprs
     type_ir = typeIR t st
     (n, st') = case isType type_ir of
-                True -> insert 0 st (getSymDesc (M_var (str,exprs,type_ir)))
+                True -> insert 0 st (getSymDesc v)
                 _ -> error "aaaaa!"
     dims = map t_fst dim_exprs
     array_desc = case (length dims) > 0 of
@@ -333,6 +335,9 @@ exprIR (M_id (str,exprs)) st = result where -- this might be wrong, check this! 
                                             ++"\tProvided dimensions: "++(show (length exprs))++"\n"
                                             ++"\tActual dimensions:   "++(show dims))
                 False -> error "TypeError: All array dimensions must be of type 'int'"
+exprIR (M_app ((M_fn str),exprs)) st = (I_APP (op_ir,(map t_fst expr_irs)),t,dims) where
+    expr_irs = exprsIR exprs st
+    (op_ir, t, dims) = operationIR (M_fn str) st (map (\(a,b,c) -> (b,c)) expr_irs)
 exprIR (M_app (op,exprs)) st = (I_APP (op_ir,(map t_fst expr_irs)),t,dims) where
     expr_irs = exprsIR exprs st
     (op_ir, t, dims) = operationIR op st (map (\(a,b,c) -> (b,c)) expr_irs)
@@ -481,7 +486,7 @@ getLastOffset ((Sym_tbl (_,_,_,(_,Var_attr (offset,_,_)):_)):_) = offset
 getSymDesc :: M_decl -> SYM_DESC
 getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
 getSymDesc (M_data (s, cons)) = DATATYPE (s, map fst cons)
---getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
+getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
 
 t_fst :: (a,b,c) -> a
 t_fst (a,_,_) = a
