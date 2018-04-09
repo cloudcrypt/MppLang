@@ -217,9 +217,11 @@ stmtIR :: M_stmt -> ST -> I_stmt
 stmtIR (M_ass (str, exprs, expr)) st = result where
     ((I_ID (level,offset,indices)),t1) = exprIR (M_id (str,exprs)) st
     (expr_ir,t2) = exprIR expr st
-    result = case equalType t1 t2 of
+    result = case t1 == t2 of
                 True -> I_ASS (level,offset,indices,expr_ir)
-                _ -> error "so sad! this will never get printed!"
+                _ -> error ("TypeError: Type mismatch in assignment:\n"
+                            ++"\tType of '"++str++"' is '"++(printType t1)
+                            ++"', but type of expression is '"++(printType t2)++"'")
 stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
                              case t of
                                M_int -> I_PRINT_I expr_ir
@@ -236,6 +238,12 @@ exprIR (M_ival i) st = ((I_IVAL i),M_int)
 exprIR (M_rval i) st = ((I_RVAL i),M_real)
 exprIR (M_bval i) st = ((I_BVAL i),M_bool)
 exprIR (M_cval i) st = ((I_CVAL i),M_char)
+exprIR (M_size (str,n)) st = result where
+    I_VARIABLE (level,offset,t,dims) = look_up st str
+    result = case n < dims of
+        True -> (I_SIZE (level,offset,n+1),M_int)
+        False -> error ("TypeError: '"++str++"' at dimension "++(show n)
+                        ++" is not a valid input for function 'size'") 
 exprIR (M_id (str,exprs)) st = result where
     I_VARIABLE (level,offset,t,dims) = look_up st str
     indice_exprs = exprsIR exprs st
