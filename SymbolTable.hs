@@ -20,6 +20,14 @@ data SYM_I_DESC = I_VARIABLE (Int,Int,M_type,Int)
                 | I_TYPE [String]
     deriving (Show)
 
+data SYM_TYPE = ST_VAR | ST_FUN | ST_CON | ST_TYPE
+
+instance Show SYM_TYPE where
+    show ST_VAR = "variable"
+    show ST_FUN = "function"
+    show ST_CON = "type constructor"
+    show ST_TYPE = "type"
+
 data ScopeType = L_PROG | L_FUN M_type | L_BLK | L_CASE
     deriving (Show)
 
@@ -96,8 +104,7 @@ empty :: ST
 empty = []
 
 newscope :: ScopeType -> ST -> ST
-newscope L_PROG st = (Sym_tbl (L_PROG,0,0,[])):st
-newscope l_fun_t st = (Sym_tbl (l_fun_t,0,0,[])):st
+newscope scope_type st = (Sym_tbl (scope_type,0,0,[])):st
 --   --....
 
 insert :: Int -> ST -> SYM_DESC -> (Int,ST)
@@ -147,6 +154,23 @@ look_up s x = find 0 s where
          (case find_level vs of 
           Just v -> found n v
           Nothing -> find (n+1) rest)
+
+look_up_verify :: SYM_TYPE -> ST -> String -> SYM_I_DESC
+look_up_verify t@ST_VAR s x = case look_up s x of
+                            I_VARIABLE found -> I_VARIABLE found
+                            _ -> error $ lookUpError x t
+look_up_verify t@ST_FUN s x = case look_up s x of
+                            I_FUNCTION found -> I_FUNCTION found
+                            _ -> error $ lookUpError x t
+look_up_verify t@ST_CON s x = case look_up s x of
+                            I_CONSTRUCTOR found -> I_CONSTRUCTOR found
+                            _ -> error $ lookUpError x t
+look_up_verify t@ST_TYPE s x = case look_up s x of
+                            I_TYPE found -> I_TYPE found
+                            _ -> error $ lookUpError x t                                                        
+
+lookUpError :: String -> SYM_TYPE -> String
+lookUpError str t = "ScopeError: '"++str++"' is not a valid "++(show t)++" in scope"
 
 --return:: ST -> M_type
 
@@ -251,6 +275,11 @@ stmtIR (M_print expr) st = let (expr_ir, t) = exprIR expr st in
                                M_char -> I_PRINT_C expr_ir
                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
 stmtIR (M_return expr) st = I_RETURN (fst $ exprIR expr st)
+stmtIR (M_block (decls,stmts)) st = I_BLOCK (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
+    st' = collectTypesIR decls (newscope L_BLK st)
+    (st'', array_descs) = varsIR decls st'
+    fun_irs = funsIR decls st''
+    stmt_irs = stmtsIR stmts st''
 stmtIR lol st = error ("recieved: "++(show lol))
 
 exprsIR :: [M_expr] -> ST -> [(I_expr,M_type)]
@@ -262,13 +291,13 @@ exprIR (M_rval i) st = ((I_RVAL i),M_real)
 exprIR (M_bval i) st = ((I_BVAL i),M_bool)
 exprIR (M_cval i) st = ((I_CVAL i),M_char)
 exprIR (M_size (str,n)) st = result where
-    I_VARIABLE (level,offset,t,dims) = look_up st str
+    I_VARIABLE (level,offset,t,dims) = look_up_verify ST_VAR st str
     result = case n < dims of
         True -> (I_SIZE (level,offset,n+1),M_int)
         False -> error ("TypeError: '"++str++"' at dimension "++(show n)
                         ++" is not a valid input for function 'size'") 
 exprIR (M_id (str,exprs)) st = result where
-    I_VARIABLE (level,offset,t,dims) = look_up st str
+    I_VARIABLE (level,offset,t,dims) = look_up_verify ST_VAR st str
     indice_exprs = exprsIR exprs st
     all_ints = allInt $ map snd indice_exprs
     equal_dims = checkDims dims (length exprs)
@@ -314,7 +343,7 @@ operationIR M_ceil st types = result where
             Just M_real -> (I_CEIL, M_int)
             _ -> error $ argsError (printOp M_ceil) types [M_real]
 operationIR (M_cid str) st types = result where
-    I_CONSTRUCTOR (num,arg_types,type_str) = look_up st str
+    I_CONSTRUCTOR (num,arg_types,type_str) = look_up_verify ST_CON st str
     result = case types == arg_types of
                 True -> (I_CONS (num, (length arg_types)), (M_type type_str))
                 False -> error ("TypeError: Incorrect arguments to constructor '"++str++"':\n"
@@ -351,7 +380,7 @@ typesIR types st = map (\t -> typeIR t st) types
 typeIR :: M_type -> ST -> M_type
 typeIR M_int st = M_int
 typeIR (M_type str) st = t where
-    I_TYPE cons = look_up st str
+    I_TYPE cons = look_up_verify ST_TYPE st str
     t = case (length cons) > 0 of
             True -> M_type str
             _ -> error ("Type "++str++" not found!")
