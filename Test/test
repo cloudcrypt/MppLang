@@ -1,12 +1,21 @@
-var x:int;
-var y[1][1]:int;
-%data intlist = #NIL
-%			 | #CONS of int * intlist;
-fun f(y[]:int):int
+%var x:int;
+%var y[1][1]:int;
+var L:intlist;
+var t:intlist;
+data intlist = #NIL
+			 | #CONS of int * intlist;
+/*fun f(y[]:int):int
 {
 	%var x:int;
 	return 6;
-};
+};*/
 begin
-x := f(y);
+%x := f(y);
+case t of { #NIL => L := #NIL
+		  | #CONS(x,xs) => L := xs };
 end
+
+
+% M_expr = M_id t
+% cons[0] = (String,[String],M_stmt) = ("#NIL",[],M_ass ("L",[],M_app (M_cid "#NIL",[])))
+% cons[1] = (String,[String],M_stmt) = ("#CONS",["x","xs"],M_ass ("L",[],M_id ("xs",[])))
