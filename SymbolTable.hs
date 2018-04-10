@@ -306,7 +306,29 @@ stmtIR (M_block (decls,stmts)) st = I_BLOCK (fun_irs,(localVarCount st''),array_
     (st'', array_descs) = varsIR decls st'
     fun_irs = funsIR decls st''
     stmt_irs = stmtsIR stmts st''
-stmtIR lol st = error ("recieved: "++(show lol))
+stmtIR (M_case (expr,cases)) st = I_CASE (expr_ir,cases_ir) where
+    (expr_ir,t) = case exprIR expr st of
+                        (e_ir,(M_type str),0) -> (e_ir,(M_type str))
+                        _ -> error "TypeError: Case statements can only match on expressions of a valid datatype"
+    cases_ir = casesIR cases t st
+
+casesIR :: [(String,[String],M_stmt)] -> M_type -> ST -> [(Int,Int,I_stmt)]
+casesIR cases t st = map (\c -> caseIR c t st) cases
+
+caseIR :: (String,[String],M_stmt) -> M_type -> ST -> (Int,Int,I_stmt)
+caseIR (str,args,stmt) t st = result where
+    I_CONSTRUCTOR (num,arg_types,type_str) = look_up_verify ST_CON st str
+    (st',_) = varsIR (map (\a -> (M_var (fst a,[],snd a))) $ zip args arg_types) (newscope L_CASE st)
+    stmt_ir = stmtIR stmt st'
+    result = case (length arg_types) == (length args) of
+                True -> case t == (M_type type_str) of
+                            True -> (num,(length arg_types),stmt_ir)
+                            False -> error ("TypeError: Case constructors must match datatype of case expression:\n"
+                                            ++"\tProvided datatype: '"++(printType (M_type type_str))++"'\n"
+                                            ++"\tActual datatype:   '"++(printType t)++"'")
+                False -> error ("TypeError: Incorrect number of arguments to constructor '"++str++"':\n"
+                                ++"\tProvided arguments: "++(show $ length args)++"\n"
+                                ++"\tActual arguments:   "++(show $ length arg_types))
 
 exprsIR :: [M_expr] -> ST -> [(I_expr,M_type,Int)]
 exprsIR exprs st = map (\e -> exprIR e st) exprs

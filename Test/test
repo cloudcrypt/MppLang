@@ -1,9 +1,10 @@
-%var x:int;
+var xs:int;
 %var y[1][1]:int;
 var L:intlist;
 var t:intlist;
 data intlist = #NIL
 			 | #CONS of int * intlist;
+data lol = #LOL;
 /*fun f(y[]:int):int
 {
 	%var x:int;
