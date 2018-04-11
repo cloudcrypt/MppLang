@@ -54,7 +54,7 @@ conIR datatype_name (str,types) st n = st' where
     types_ir = typesIR types st
     st' = case isTypes types_ir of
                 True -> insert n st (CONSTRUCTOR (str,types_ir,datatype_name))
-                _ -> error "bbbb!"
+                _ -> error "An unexpected error has occured (conIR)"
 
 varIR :: (Num a, Show a) => M_decl -> ST -> IORef a -> (ST, [Array_desc])
 varIR f@(M_fun (str,args,t,decls,stmts)) st c = (st', []) where
@@ -65,7 +65,7 @@ varIR v@(M_var (str,exprs,t)) st _ = result where
     type_ir = typeIR t st
     st' = case isType type_ir of
                 True -> insert 0 st (getSymDesc v)
-                _ -> error "aaaaa!"
+                _ -> error "An unexpected error has occured (varIR)"
     dims = map t_fst dim_exprs
     array_desc = case (length dims) > 0 of
                     True -> [((getLastOffset st'),dims)]
@@ -188,7 +188,7 @@ refIR (M_id (str,exprs)) st = result where
                 False -> case dims > 0 of
                             True -> (I_REF (level,offset),t,dims)
                             False -> (I_ID (level,offset,[]),t,0)
-                True -> error "invalid array thing to function call!"
+                True -> error "TypeError: All array arguments in function calls must omit index information"
 
 exprIR :: M_expr -> ST -> (I_expr,M_type,Int)
 exprIR (M_ival i) st = ((I_IVAL i),M_int,0)
@@ -297,7 +297,7 @@ typeIR (M_type str) st = t where
     I_TYPE cons = look_up_verify ST_TYPE st str
     t = case (length cons) > 0 of
             True -> M_type str
-            _ -> error ("Type "++str++" not found!")
+            _ -> error ("ScopeError: Type '"++str++"' could not be found in the current scope")
 typeIR t st = t
 
 isTypes :: [M_type] -> Bool
@@ -312,11 +312,6 @@ isType M_bool = True
 isType M_real = True
 isType M_char = True
 isType (M_type str) = True
-
-equalType :: M_type -> M_type -> Bool
-equalType t1 t2 
-    | t1 == t2 = True
-    | otherwise = error "LOLOLOL!"
 
 opTypeError :: M_operation -> [M_type] -> String
 opTypeError op allowed = error ("TypeError: All expressions supplied to '"

@@ -112,32 +112,28 @@ newscope :: ScopeType -> ST -> ST
 newscope scope_type st = (Sym_tbl (scope_type,0,0,[])):st
 
 insert :: Int -> ST -> SYM_DESC -> ST
-insert n [] d =  error "Symbol table error: insertion before defining scope."
+insert n [] d =  error "SymbolTableError: Insertion before defining scope"
 insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (ARGUMENT(str,t,dim)) 
-      | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
+      | (inIndexList str sL) = error $ definedError str
       | otherwise = ((Sym_tbl(sT,nL,nA+1
                         ,(str,Var_attr(-(nA+4),t,dim)):sL)):rest)
 insert n ((Sym_tbl (sT,nL,nA,sL)):rest) (VARIABLE (str,t,dim))
-       | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
+       | (inIndexList str sL) = error $ definedError str
        | otherwise = ((Sym_tbl (sT,nL+1,nA
                          ,(str,Var_attr (nL+1,t,dim)):sL)):rest)
--- insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (FUNCTION (str,ts,t))
---        | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
---        | otherwise = ((Sym_tbl(sT,nL,nA,(str,Fun_attr("fn"++(show n),ts,t)):sL)
---                           ):rest)
 insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (DATATYPE (str, cons))
-       | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
+       | (inIndexList str sL) = error $ definedError str
        | otherwise = ((Sym_tbl(sT,nL,nA,(str,Typ_attr cons):sL)
                           ):rest)
 insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (CONSTRUCTOR (name,arg_types,type_str))
-       | (inIndexList name sL) = error ("Symbol table error: "++name++" is already defined.")
+       | (inIndexList name sL) = error $ definedError name
        | otherwise = ((Sym_tbl(sT,nL,nA,(name,Con_attr (n,arg_types,type_str)):sL)
                           ):rest)
 
 insertFun :: (Num a, Show a) => IORef a -> ST -> SYM_DESC -> ST
-insertFun c [] d =  error "Symbol table error: insertion before defining scope."
+insertFun c [] d =  error "SymbolTableError: Insertion before defining scope"
 insertFun c ((Sym_tbl(sT,nL,nA,sL)):rest) (FUNCTION (str,ts,t))
-       | (inIndexList str sL) = error ("Symbol table error: "++str++" is already defined.")
+       | (inIndexList str sL) = error $ definedError str
        | otherwise = ((Sym_tbl(sT,nL,nA,(str,Fun_attr(getNextLabel c,ts,t)):sL)
                           ):rest)
 
@@ -182,6 +178,9 @@ look_up_verify t@ST_TYPE s x = case look_up s x of
 
 lookUpError :: String -> SYM_TYPE -> String
 lookUpError str t = "ScopeError: '"++str++"' is not a valid "++(show t)++" in scope"
+
+definedError :: String -> String
+definedError str = "ScopeError: '"++str++"' is already defined in scope"
 
 newCounter :: (Num a) => IORef a
 newCounter = unsafePerformIO $ newIORef (-1)
