@@ -1,0 +1,27 @@
+%	Example1
+%	Author: Daniel Dastoor
+%	Purpose: Tests blocks, while statements, and conditionals
+%
+var x:int;
+var y:int;
+x := -1;
+y := 5;
+{
+	var x:int;
+	x := y * 5;
+	print x;
+};
+while x < 10 do
+{
+	x := x + 1;
+};
+print x;
+read x;
+if x > 0 then
+{
+	print x;
+}
+else
+{
+	print -x;
+};
