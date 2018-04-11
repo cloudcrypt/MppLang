@@ -3,7 +3,7 @@ module IRGenerator where
 import Prelude hiding (LT, GT)
 import System.Environment
 import System.IO
-import Data.List hiding (insert)
+import Data.List hiding (insert, intersperse)
 import Data.IORef
 import System.IO.Unsafe
 import Lexer
@@ -371,3 +371,38 @@ t_snd (_,b,_) = b
 
 t_trd :: (a,b,c) -> c
 t_trd (_,_,c) = c
+
+-- instance Show I_prog where
+--     show (I_prog (funs,vars,array_descs,stmts)) = "I_PROG\n\t"++
+
+-- instance Show I_fbody where
+--     show (I_fbody (label,funs,vars,args,array_descs,stmts)) = "I_FUN\n"
+printIR :: I_prog -> String
+printIR (I_PROG (funs,vars,array_descs,stmts)) = "I_PROG (\n"
+                                                  ++"\t []"++"\n"
+                                                  ++"\t,"++(show vars)++"\n"
+                                                  ++"\t,[]"++"\n"
+                                                  ++"\t,["++(intercalate "," $ map (intersperse "\t  ") $ map printStmtIr stmts)++"])"
+
+printStmtIr :: I_stmt -> String
+printStmtIr (I_WHILE (expr, stmt)) = "I_WHILE (\n"
+                                      ++"\t "++(show expr)++"\n"
+                                      ++"\t,"++(printStmtIr stmt)++")"
+printStmtIr (I_COND (expr,s1,s2)) = "I_COND (\n"
+                                      ++"\t "++(show expr)++"\n"
+                                      ++"\t,"++(printStmtIr s1)
+                                      ++"\t,"++(printStmtIr s2)++")"
+printStmtIr (I_CASE (expr,cases)) = "I_CASE (\n"
+                                      ++"\t "++(show expr)++"\n"
+                                      ++"\t,["++(intercalate "," $ map (intersperse "\t  ") $ map printCaseIr cases)++"])"
+printStmtIr (I_BLOCK (funs,vars,array_descs,stmts)) = "I_BLOCK (\n"
+                                                       ++"\t []"++"\n"
+                                                       ++"\t,"++(show vars)++"\n"
+                                                       ++"\t,[]"++"\n"
+                                                       ++"\t,["++(intercalate "," $ map (intersperse "\t  ") $ map printStmtIr stmts)++"])"
+printStmtIr a = show a
+
+printCaseIr :: (Int,Int,I_stmt) -> String
+printCaseIr (n,m,stmt) = "("++(show n)++"\n"
+                          ++","++(show m)++"\n"
+                          ++","++(printStmtIr stmt)++")"

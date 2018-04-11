@@ -12,6 +12,7 @@ fun f(y[]:int):int
 	return y[0];
 };
 begin
+/*
 {
 	fun h(y:int):int
 	{
@@ -20,6 +21,8 @@ begin
 	x := h(x);
 };
 x := f(c);
+*/
+x := 1;
 end
 /*var xs:int;
 %var y[1][1]:int;

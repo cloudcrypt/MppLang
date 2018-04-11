@@ -31,6 +31,8 @@ main = do
                     let ir = generateIR ast c
                     print ir
 
+                    putStrLn $ printIR ir
+
                 _ -> printErrors (filter isError ts)
         _ -> do
             putStrLn "Usage: inputFilename"
