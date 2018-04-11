@@ -1,3 +1,6 @@
+
+
+-- Daniel Dastoor
 module IRGenerator where 
 
 import Prelude hiding (LT, GT)
@@ -372,37 +375,44 @@ t_snd (_,b,_) = b
 t_trd :: (a,b,c) -> c
 t_trd (_,_,c) = c
 
--- instance Show I_prog where
---     show (I_prog (funs,vars,array_descs,stmts)) = "I_PROG\n\t"++
-
--- instance Show I_fbody where
---     show (I_fbody (label,funs,vars,args,array_descs,stmts)) = "I_FUN\n"
 printIR :: I_prog -> String
 printIR (I_PROG (funs,vars,array_descs,stmts)) = "I_PROG (\n"
-                                                  ++"\t []"++"\n"
+                                                  ++"\t "++(printList funs printFbodyIr)++"\n"
                                                   ++"\t,"++(show vars)++"\n"
-                                                  ++"\t,[]"++"\n"
-                                                  ++"\t,["++(intercalate "," $ map (intersperse "\t  ") $ map printStmtIr stmts)++"])"
+                                                  ++"\t,"++(printList array_descs show)++"\n"
+                                                  ++"\t,"++(printList stmts printStmtIr)++")"
+
+printFbodyIr :: I_fbody -> String
+printFbodyIr (I_FUN (str,funs,vars,args,array_descs,stmts)) = "I_PROG (\n"
+                                                           ++"\t "++str++"\n"
+                                                           ++"\t,"++(printList funs printFbodyIr)++"\n"
+                                                           ++"\t,"++(show vars)++"\n"
+                                                           ++"\t,"++(show args)++"\n"
+                                                           ++"\t,"++(printList array_descs show)++"\n"
+                                                           ++"\t,"++(printList stmts printStmtIr)++")"
 
 printStmtIr :: I_stmt -> String
 printStmtIr (I_WHILE (expr, stmt)) = "I_WHILE (\n"
                                       ++"\t "++(show expr)++"\n"
-                                      ++"\t,"++(printStmtIr stmt)++")"
+                                      ++"\t,"++(intersperse "\t" $ printStmtIr stmt)++")"
 printStmtIr (I_COND (expr,s1,s2)) = "I_COND (\n"
                                       ++"\t "++(show expr)++"\n"
                                       ++"\t,"++(printStmtIr s1)
                                       ++"\t,"++(printStmtIr s2)++")"
 printStmtIr (I_CASE (expr,cases)) = "I_CASE (\n"
                                       ++"\t "++(show expr)++"\n"
-                                      ++"\t,["++(intercalate "," $ map (intersperse "\t  ") $ map printCaseIr cases)++"])"
+                                      ++"\t,"++(printList cases printCaseIr)++")"
 printStmtIr (I_BLOCK (funs,vars,array_descs,stmts)) = "I_BLOCK (\n"
                                                        ++"\t []"++"\n"
                                                        ++"\t,"++(show vars)++"\n"
-                                                       ++"\t,[]"++"\n"
-                                                       ++"\t,["++(intercalate "," $ map (intersperse "\t  ") $ map printStmtIr stmts)++"])"
+                                                       ++"\t,"++(printList array_descs show)++"\n"
+                                                       ++"\t,"++(printList stmts printStmtIr)++")"
 printStmtIr a = show a
 
 printCaseIr :: (Int,Int,I_stmt) -> String
 printCaseIr (n,m,stmt) = "("++(show n)++"\n"
                           ++","++(show m)++"\n"
                           ++","++(printStmtIr stmt)++")"
+
+printList :: [a] -> (a -> String) -> String
+printList list f = "["++(intercalate "\n\t  ," $ map (intersperse "\t  ") $ map f list)++"]"

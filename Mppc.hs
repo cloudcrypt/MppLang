@@ -1,3 +1,6 @@
+
+
+-- Daniel Dastoor
 module Main where
 
 import System.Environment
@@ -20,7 +23,6 @@ main = do
                 0 -> do
                     -- Recognize grammar, and build abstract syntax tree
                     let ast = parse ts
-                    print ast
                     -- Print syntax tree (converted back to readable code)
                     putStr "\nParsed Syntax Tree:\n\n"
                     putStrLn $ printAST ast
@@ -29,8 +31,8 @@ main = do
 
                     let c = newCounter
                     let ir = generateIR ast c
-                    print ir
 
+                    putStr "\nIntermediate Representation:\n\n"
                     putStrLn $ printIR ir
 
                 _ -> printErrors (filter isError ts)

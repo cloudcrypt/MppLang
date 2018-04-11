@@ -2197,8 +2197,12 @@ indent :: String -> String
 indent s = intercalate "\n" $ map (\line -> (replicate 1 '\t')++line) (lines s)
 
 intersperse :: String -> String -> String
-intersperse s str = (head ls)++"\n"++(intercalate "\n" $ map (\line -> s++line) (tail ls))
-    where ls = lines str
+intersperse s str = (head ls)++nl++(intercalate "\n" $ map (\line -> s++line) (tail ls))
+    where 
+        ls = lines str
+        nl = case (length ls) > 1 of
+                True -> "\n"
+                _ -> ""
 
 --main :: IO ()
 --main = do

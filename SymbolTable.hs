@@ -1,3 +1,6 @@
+
+
+-- Daniel Dastoor
 module SymbolTable where 
 
 import Prelude hiding (LT, GT)

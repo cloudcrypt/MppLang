@@ -1,4 +1,4 @@
-var a[4][4]:int;
+/*var a[4][4]:int;
 var b[4]:int;
 var c[4]:int;
 var x:int;
@@ -12,7 +12,6 @@ fun f(y[]:int):int
 	return y[0];
 };
 begin
-/*
 {
 	fun h(y:int):int
 	{
@@ -21,29 +20,38 @@ begin
 	x := h(x);
 };
 x := f(c);
-*/
-x := 1;
 end
-/*var xs:int;
+*/
+var xs:int;
 %var y[1][1]:int;
+var a[1]:int;
+var b[1][1]:int;
+var c[1][1][1]:int;
 var L:intlist;
 var t:intlist;
 data intlist = #NIL
 			 | #CONS of int * intlist * int;
-data lol = #LOL;
-/*fun f(y[]:int):int
+fun f(y[]:int):int
 {
 	%var x:int;
 	return 6;
-};*/
+};
+fun g(y[]:int):int
+{
+	%var x:int;
+	return 6;
+};
 begin
 %x := f(y);
 case t of { #NIL => L := #NIL
 		  | #CONS(x,xs,y) => L := xs };
+%while xs>xs do
+%{
+%	t := #NIL;
+%};
 end
 
 
 % M_expr = M_id t
 % cons[0] = (String,[String],M_stmt) = ("#NIL",[],M_ass ("L",[],M_app (M_cid "#NIL",[])))
 % cons[1] = (String,[String],M_stmt) = ("#CONS",["x","xs"],M_ass ("L",[],M_id ("xs",[])))
-*/
