@@ -1,0 +1,9 @@
+var x[6][3]:real;
+fun a():int
+ { begin return size(x)*size(x[]) ; end };
+
+begin
+
+print a();
+
+end

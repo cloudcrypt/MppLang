@@ -1,0 +1,39 @@
+
+var n:int;
+
+begin
+  read n;
+  { var a[n]:real;
+    begin
+       n:=0;
+       while n<size(a) do {begin  read a[n]; n:=n+1; end};
+       n:=0;
+       while n<size(a) do {begin  print a[n]; n:=n+1; end};
+    end };
+end
+
+
+/*  The intermediate representation for this should look like:
+
+
+ iPROG([]
+      ,1
+      ,[]
+      ,[iREAD_I (0,1,[])
+       ,iBLOCK([]
+              ,1
+              ,[(1,[iID (1,1,[])])]
+              ,[iASS (1,1,[],iIVAL 0)
+               ,iWHILE(iAPP (iLT_I,[iID (1,1,[]),iSIZE (0,1,1)])
+                      ,iBLOCK([],0,[]
+                             ,[iREAD_F (1,1,[iID (2,1,[])])
+                              ,iASS (2,1,[],iAPP (iADD_I,[iID (2,1,[]),iIVAL 1]))
+                              ]))
+               ,iASS (1,1,[],iIVAL 0)
+               ,iWHILE(iAPP (iLT_I,[iID (1,1,[]),iSIZE (0,1,1)])
+                      ,iBLOCK([],0,[]
+                             ,[iPRINT_F (iID (1,1,[iID (2,1,[])]))
+               ,iASS (2,1,[],iAPP (iADD_I,[iID (2,1,[]),iIVAL 1]))]))])
+        ])
+
+*/

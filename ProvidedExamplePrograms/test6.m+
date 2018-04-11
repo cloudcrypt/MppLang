@@ -1,0 +1,14 @@
+/*
+     This should catch the error that size(x[][]) is looking for the bound in 
+     the third dimension which does not exist! 
+ */
+
+
+var x[6][3]:real;
+
+begin
+
+print size(x[]);
+print size(x[][]);
+
+end

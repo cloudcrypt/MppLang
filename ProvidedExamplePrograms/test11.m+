@@ -1,0 +1,15 @@
+
+var n:int;
+
+begin
+  read n;
+  { var a[n]:real; var av: real;
+    begin
+       n:=0;
+       while n<size(a) do {begin  read a[n]; n:=n+1; end};
+       n:=0; av:=0.0;
+       while n<size(a) do {begin  av:= av+a[n]; n:=n+1; end};
+       av:=av/float(size(a));
+       print av;
+    end };
+end

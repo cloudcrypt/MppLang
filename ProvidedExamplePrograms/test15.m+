@@ -1,0 +1,57 @@
+/* An in-place merge sort ... */
+var n:int;
+    fun merge(b[]:int,n:int,mid:int,m:int):bool
+         { begin
+            if n<m then 
+              { var c[m-n+1]:int; var i: int; var j: int; var k:int;
+                begin  i:=n; j:=mid; k:=0;
+                   while i<mid && j=<m do
+                    { begin 
+                       if b[i]<b[j] then
+                         {begin c[k]:=b[i]; i:=i+1; k:=k+1; end}
+                       else 
+                         {begin c[k]:=b[j]; j:=j+1; k:=k+1; end};
+                      end };
+                   while i<mid do {begin c[k]:=b[i]; k:=k+1;i:=i+1; end}; 
+                   while j=<m do {begin c[k]:=b[j]; k:=k+1;j:=j+1; end}; 
+                   k:=0; while k+n=<m do {begin b[n+k]:=c[k]; k:=k+1; end};
+                end }
+             else {begin end};
+             return true;
+             end };
+      
+fun sort(b[]:int,n:int,m:int):bool
+  { var v:bool;   
+    begin
+       if m-n < 0 then v:= false
+       else if n=m then v:= true
+       else if m-n = 1 then
+         { var temp:int;
+           begin
+             if b[n]>b[m] then 
+               { begin temp:= b[n]; b[n]:= b[m]; b[m]:= temp; v:= true; end}
+             else v:= true;
+           end }
+       else 
+         { var mid:int;
+           begin
+              mid := n+(m-n)/2;
+              print mid;
+              v:= sort(b,n,mid) && sort(b,mid+1,m) && merge(b,n,mid+1,m);
+           end };
+        return v;
+      end };
+
+begin
+  read n;
+  { var a[n]:int;
+    begin
+       n:=0;
+       while n<size(a) do {begin  read a[n]; n:=n+1; end};
+       if sort(a,0,size(a)-1) then
+           {begin 
+              n:=0; while n<size(a) do {begin  print a[n]; n:=n+1; end};
+            end}
+       else print 0;
+     end };
+end

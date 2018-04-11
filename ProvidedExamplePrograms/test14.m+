@@ -1,0 +1,11 @@
+/*  Should detect that the wrong type of value is being returned */
+
+var x[6][3]:real;
+fun a():real
+ { begin return size(x)*size(x[]) ; end };
+
+begin
+
+print a();
+
+end

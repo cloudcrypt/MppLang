@@ -1,0 +1,29 @@
+var x[2][2]:real;
+var y[1][1]:real;
+
+fun compare_matrix(a[][]:real,b[][]:real):bool
+    { var v:bool;
+      begin
+        if size(a) = size(b)  && size(a[]) = size(b[])
+        then v:=true  
+        else  v:= false;
+        return v;
+       end };
+
+begin
+
+x[0][0]:=1.2; x[0][1]:= 1.5; x[1][0]:=2.0 ; x[1][1]:=2.5 ;
+y[0][0]:=6.0;
+
+if  compare_matrix(x,x) then 
+   { begin print x[0][0];
+           print x[0][1];
+           print x[1][0];
+           print x[1][1];
+     end }
+else print false;
+
+if  compare_matrix(x,y) then print y[0][0]
+else print false;
+
+end

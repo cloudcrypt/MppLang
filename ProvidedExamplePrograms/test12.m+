@@ -1,0 +1,38 @@
+var x[2][2]:real;
+
+fun add_matrix(a[][]:real,b[][]:real):bool
+    { var n:int; var m:int; var v:bool;
+      begin
+        if size(a) = size(b)  && size(a[]) = size(b[])
+        then {begin 
+            n := 0;
+            while n < size(a) do
+                {begin 
+                   m := 0;
+                   while m < size(a[]) do 
+                      {begin 
+                         a[n][m]:= b[n][m] + a[n][m];
+                         m:=m+1;
+                       end};
+                   n:=n+1;
+                 end};
+               v:= true;
+               end}
+         else  v:= false;
+         return v;
+       end };
+
+begin
+
+x[0][0]:= 1.2; x[0][1]:= 1.5; x[1][0]:= 2.0; x[1][1]:= 2.5;
+
+if add_matrix(x,x) then 
+   { begin
+      print x[0][0];
+      print x[0][1];
+      print x[1][0];
+      print x[1][1];
+     end }
+else print 0;
+
+end

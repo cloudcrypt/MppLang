@@ -1,0 +1,85 @@
+
+fun mult_matrix(a[][]:real,b[][]:real,c[][]:real):bool
+ {  var ab[size(a)][size(b[])]:real;
+    var n:int; var m:int; var p:int; var i:int; var j:int; var k:int;
+    var ret: bool;
+
+    begin
+       %  check the dimensions agree
+       n:= size(a); m:= size(b); p:= size(c[]);
+       if n=size(c) && m=size(a[]) && p=size(b[]) then 
+          {begin
+               % form ab = a*b
+               i := 0;
+               while i<n do { begin
+	         j := 0;
+                 while j<p do { begin 
+                   ab[i][j]:= 0.0;
+		   k:=0;
+                   while k<m do { begin 
+                     ab[i][j] := ab[i][j] + a[i][k]*b[k][j];
+                     k := k+1;
+                   end };
+                   j:= j+1;
+                 end };
+                 i:= i+1;
+               end };
+               % write out ab into c
+	       i:=0;
+               while i<n do { begin
+	         j:=0;
+                 while j<p do {begin 
+                   c[i][j]:= ab[i][j];
+                   j:=j+1;
+                 end };
+                 i:= i+1;
+               end };
+               ret:= true;
+          end }
+       else ret:= false;
+       return ret;
+     end
+  };
+
+fun read_matrix(a[][]:real):bool
+  { var i:int; var j:int;
+    begin
+       i:= 0;
+       while i < size(a[]) do { begin
+         j := 0;
+         while j < size(a[]) do { begin
+             read a[i][j];
+             j := j+1;
+         end };
+         i := i+1;
+       end };
+       return true;
+    end};
+
+fun write_matrix(a[][]:real):bool
+  { var i:int; var j:int;
+    begin
+       i:= 0;
+       while i < size(a[]) do { begin
+         j:=0;
+         while j < size(a[]) do { begin
+             print a[i][j];
+             j := j+1;
+         end };
+         i := i+1;
+       end };
+       return true;
+    end};
+
+var X[2][2]:real;
+
+begin
+  if read_matrix(X)
+  then if mult_matrix(X,X,X) 
+  then if write_matrix(X) 
+  then { begin end }
+  else { begin end }
+  else { begin end }
+  else { begin end };
+end
+  

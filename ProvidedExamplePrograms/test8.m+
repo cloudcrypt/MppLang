@@ -1,0 +1,8 @@
+var x[6][3]:real;
+
+begin
+
+print size(x);
+print size(x[]);
+
+end

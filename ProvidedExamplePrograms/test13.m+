@@ -1,0 +1,12 @@
+/*
+     This should catch the error that x does not have a size! 
+ */
+
+
+var x:bool;
+
+begin
+
+print size(x);
+
+end

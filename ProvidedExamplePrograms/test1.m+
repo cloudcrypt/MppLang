@@ -1,0 +1,9 @@
+/*  This example should fail in semantic checking as a 
+    real index is used!
+ */
+
+var x[2]:int;
+
+begin 
+x[1]:= x[2.0]+x[1];
+end

@@ -1,0 +1,51 @@
+/*
+    Title: summing a list of numbers
+
+    Author: Robin Cockett
+
+    Date: 6th March 2003 
+
+    Description:
+    
+    An example m+- program!
+
+    The program reads in a list of N reals, where N is specified by 
+    the user, sums them and then writes out the answer.  It 
+    illustrates the use of dynamic array sizing and local function 
+    definitions.
+
+ */
+
+%  A function for summing a list of N numbers: 
+fun sum_list(N:int):real
+    { var X[N]:real;
+      fun read_list(X[]:real):bool
+          { var i:int;
+            begin
+              i:= 0;
+              while i<size(X) do
+                 { begin read X[i]; i:=i+1; end };
+              return true;
+            end };
+      fun sum_list(X[]:real):real
+          {var i:int;
+           var sum:real;
+            begin
+              i:= 0; sum:= 0.0;
+              while i<size(X) do
+                 { begin sum:= sum + X[i]; i:=i+1; end };
+              return sum;
+            end};
+      var x:real;
+      begin
+        print read_list(X);
+        return sum_list(X);
+      end };
+var M:int;
+begin 
+  read M;
+  print sum_list(M);
+end
+      
+    
+

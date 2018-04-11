@@ -1,0 +1,10 @@
+/* Should report an array error when it is run! x[2] is out of bounds! */
+
+var x[2]:int;
+
+begin
+x[1]:=10; x[2]:=15; 
+x[1]:= x[2]+x[1];
+print x[1];
+print x[2];
+end

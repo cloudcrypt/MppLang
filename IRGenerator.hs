@@ -60,7 +60,10 @@ varIR :: (Num a, Show a) => M_decl -> ST -> IORef a -> (ST, [Array_desc])
 varIR f@(M_fun (str,args,t,decls,stmts)) st c = (st', []) where
     st' = insertFun c st (getSymDesc f)
 varIR v@(M_var (str,exprs,t)) st _ = result where
-    dim_exprs = exprsIR exprs $ tail st
+    mod_st = case lastSTFun st of
+                True -> st
+                False -> tail st
+    dim_exprs = exprsIR exprs mod_st
     all_ints = allInt $ map t_snd dim_exprs
     type_ir = typeIR t st
     st' = case isType type_ir of
@@ -68,7 +71,7 @@ varIR v@(M_var (str,exprs,t)) st _ = result where
                 _ -> error "An unexpected error has occured (varIR)"
     dims = map t_fst dim_exprs
     array_desc = case (length dims) > 0 of
-                    True -> [((getLastOffset st'),dims)]
+                    True -> [((getLastOffset st'),(incrementLevels dims))]
                     False -> []
     result = case all_ints of
                 True -> (st', array_desc)
@@ -313,6 +316,16 @@ isType M_real = True
 isType M_char = True
 isType (M_type str) = True
 
+incrementLevels :: [I_expr] -> [I_expr]
+incrementLevels expr_irs = map incrementLevel expr_irs
+
+incrementLevel :: I_expr -> I_expr
+incrementLevel (I_ID (level,offset,indices)) = I_ID (level+1,offset,(incrementLevels indices))
+incrementLevel (I_APP (op,exprs)) = I_APP (op,(incrementLevels exprs))
+incrementLevel (I_REF (level,offset)) = I_REF (level+1,offset)
+incrementLevel (I_SIZE (level,offset,dims)) = I_SIZE (level+1,offset,dims)
+incrementLevel expr_ir = expr_ir
+
 opTypeError :: M_operation -> [M_type] -> String
 opTypeError op allowed = error ("TypeError: All expressions supplied to '"
                                 ++(printOp op)++"' must be of type "
@@ -361,6 +374,10 @@ getSymDesc (M_var (s, arraydims, t)) = VARIABLE (s, t, length arraydims)
 getSymDesc (M_data (s, cons)) = DATATYPE (s, map fst cons)
 getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a_t) -> (a_t,n)) args), t)
 
+lastSTFun :: ST -> Bool
+lastSTFun ((Sym_tbl (L_FUN _,_,_,_)):_) = True
+lastSTFun _ = False
+
 t_fst :: (a,b,c) -> a
 t_fst (a,_,_) = a
 
@@ -392,8 +409,8 @@ printStmtIr (I_WHILE (expr, stmt)) = "I_WHILE (\n"
                                       ++"\t,"++(intersperse "\t" $ printStmtIr stmt)++")"
 printStmtIr (I_COND (expr,s1,s2)) = "I_COND (\n"
                                       ++"\t "++(show expr)++"\n"
-                                      ++"\t,"++(printStmtIr s1)
-                                      ++"\t,"++(printStmtIr s2)++")"
+                                      ++"\t,"++(intersperse "\t" $ printStmtIr s1)++"\n"
+                                      ++"\t,"++(intersperse "\t" $ printStmtIr s2)++")"
 printStmtIr (I_CASE (expr,cases)) = "I_CASE (\n"
                                       ++"\t "++(show expr)++"\n"
                                       ++"\t,"++(printList cases printCaseIr)++")"
