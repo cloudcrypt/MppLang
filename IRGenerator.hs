@@ -4,35 +4,37 @@ import Prelude hiding (LT, GT)
 import System.Environment
 import System.IO
 import Data.List hiding (insert)
+import Data.IORef
+import System.IO.Unsafe
 import Lexer
 import Parser
 import SymbolTable
 
-generateIR :: AST -> IR
-generateIR (M_prog (decls,stmts)) = I_PROG (fun_irs,(localVarCount st'),array_descs,stmt_irs) where
+generateIR :: (Num a, Show a) => AST -> IORef a -> IR
+generateIR (M_prog (decls,stmts)) c = I_PROG (fun_irs,(localVarCount st'),array_descs,stmt_irs) where
     st = collectTypesIR decls (newscope L_PROG empty)
-    (st', array_descs) = varsIR decls st
-    fun_irs = funsIR decls st'
-    stmt_irs = stmtsIR stmts st'
+    (st', array_descs) = varsIR decls st c
+    fun_irs = funsIR decls st' c
+    stmt_irs = stmtsIR stmts st' c
 
 collectTypesIR :: [M_decl] -> ST -> ST
 collectTypesIR (d:ds) st = collectTypesIR ds st' where
     st' = collectTypeIR d st
 collectTypesIR [] st = st
 
-varsIR :: [M_decl] -> ST -> (ST, [Array_desc])
-varsIR (d:ds) st = (st'', array_descs++array_descs') where
-    (st', array_descs) = varIR d st
-    (st'', array_descs') = varsIR ds st'
-varsIR [] st = (st, [])
+varsIR :: (Num a, Show a) => [M_decl] -> ST -> IORef a -> (ST, [Array_desc])
+varsIR (d:ds) st c = (st'', array_descs++array_descs') where
+    (st', array_descs) = varIR d st c
+    (st'', array_descs') = varsIR ds st' c
+varsIR [] st c = (st, [])
 
-funsIR :: [M_decl] -> ST -> [I_fbody]
-funsIR (d:ds) st = (funIR d st)++(funsIR ds st)
-funsIR [] st = []
+funsIR :: (Num a, Show a) => [M_decl] -> ST -> IORef a -> [I_fbody]
+funsIR (d:ds) st c = (funIR d st c)++(funsIR ds st c)
+funsIR [] st c = []
 
 collectTypeIR :: M_decl -> ST -> ST
 collectTypeIR (M_data (str,cons)) st = st'' where
-    (n, st') = insert 0 st (getSymDesc (M_data (str,cons)))
+    st' = insert 0 st (getSymDesc (M_data (str,cons)))
     st'' = consIR str cons st'
 collectTypeIR _ st = st
 
@@ -47,18 +49,18 @@ consIR' _ [] st _ = st
 conIR :: String -> (String,[M_type]) -> ST -> Int -> ST
 conIR datatype_name (str,types) st n = st' where
     types_ir = typesIR types st
-    (_, st') = case isTypes types_ir of
+    st' = case isTypes types_ir of
                 True -> insert n st (CONSTRUCTOR (str,types_ir,datatype_name))
                 _ -> error "bbbb!"
 
-varIR :: M_decl -> ST -> (ST, [Array_desc])
-varIR f@(M_fun (str,args,t,decls,stmts)) st = (st', []) where
-    (n, st') = insert 0 st (getSymDesc f)
-varIR v@(M_var (str,exprs,t)) st = result where
+varIR :: (Num a, Show a) => M_decl -> ST -> IORef a -> (ST, [Array_desc])
+varIR f@(M_fun (str,args,t,decls,stmts)) st c = (st', []) where
+    st' = insertFun c st (getSymDesc f)
+varIR v@(M_var (str,exprs,t)) st _ = result where
     dim_exprs = exprsIR exprs $ tail st
     all_ints = allInt $ map t_snd dim_exprs
     type_ir = typeIR t st
-    (n, st') = case isType type_ir of
+    st' = case isType type_ir of
                 True -> insert 0 st (getSymDesc v)
                 _ -> error "aaaaa!"
     dims = map t_fst dim_exprs
@@ -68,22 +70,23 @@ varIR v@(M_var (str,exprs,t)) st = result where
     result = case all_ints of
                 True -> (st', array_desc)
                 False -> error "TypeError: All array dimensions must be of type 'int'"
-varIR _ st = (st, [])
+varIR _ st _ = (st, [])
 
-funIR :: M_decl -> ST -> [I_fbody]
-funIR (M_fun (str,args,t,decls,stmts)) st = result where
+funIR :: (Num a, Show a) => M_decl -> ST -> IORef a -> [I_fbody]
+funIR (M_fun (str,args,t,decls,stmts)) st c = result where
     st' = collectArgs (reverse args) (newscope (L_FUN t) st)
     st'' = collectTypesIR decls st'
-    (st''', array_descs) = varsIR decls st''
-    fun_irs = funsIR decls st'''
-    stmt_irs = stmtsIR stmts st'''
+    (st''', array_descs) = varsIR decls st'' c
+    fun_irs = funsIR decls st''' c
+    stmt_irs = stmtsIR stmts st''' c
     M_return return_expr = last stmts
+    I_FUNCTION (_,label,_,_) = look_up_verify ST_FUN st str
     result = let pt = (t_snd (exprIR return_expr st''')) in case pt == t of
-                True -> [I_FUN (str,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)]
+                True -> [I_FUN (label,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)]
                 _ -> error ("TypeError: Return type mismatch for function '"++str++"'\n"
                             ++"\tProvided return type: '"++(printType pt)++"'\n"
                             ++"\tActual return type:   '"++(printType t)++"'")
-funIR _ st = []
+funIR _ st c = []
 
 collectArgs :: [(String,Int,M_type)] -> ST -> ST
 collectArgs (arg:args) st = collectArgs args st' where
@@ -94,14 +97,14 @@ collectArg :: (String,Int,M_type) -> ST -> ST
 collectArg (str,dim,t) st = result where
     type_ir = typeIR t st
     result = case isType type_ir of
-                True -> snd $ insert 0 st (ARGUMENT (str,t,dim))
+                True -> insert 0 st (ARGUMENT (str,t,dim))
                 _ -> error "An unexpected error has occured (collectArg)"
 
-stmtsIR :: [M_stmt] -> ST -> [I_stmt]
-stmtsIR stmts st = map (\s -> stmtIR s st) stmts
+stmtsIR :: (Num a, Show a) => [M_stmt] -> ST -> IORef a -> [I_stmt]
+stmtsIR stmts st c = map (\s -> stmtIR s st c) stmts
 
-stmtIR :: M_stmt -> ST -> I_stmt
-stmtIR (M_ass (str, exprs, expr)) st = result where
+stmtIR :: (Num a, Show a) => M_stmt -> ST -> IORef a -> I_stmt
+stmtIR (M_ass (str, exprs, expr)) st _ = result where
     ((I_ID (level,offset,indices)),t1,_) = exprIR (M_id (str,exprs)) st
     (expr_ir,t2,_) = exprIR expr st
     result = case t1 == t2 of
@@ -109,20 +112,20 @@ stmtIR (M_ass (str, exprs, expr)) st = result where
                 _ -> error ("TypeError: Type mismatch in assignment:\n"
                             ++"\tType of '"++str++"' is '"++(printType t1)
                             ++"', but type of expression is '"++(printType t2)++"'")
-stmtIR (M_while (expr, stmt)) st = result where
+stmtIR (M_while (expr, stmt)) st c = result where
     (expr_ir,t,_) = exprIR expr st
-    stmt_ir = stmtIR stmt st
+    stmt_ir = stmtIR stmt st c
     result = case t of
                 M_bool -> I_WHILE (expr_ir,stmt_ir)
                 _ -> error ("TypeError: While statement expression must be of type "++(printType M_bool))
-stmtIR (M_cond (expr,s1,s2)) st = result where
+stmtIR (M_cond (expr,s1,s2)) st c = result where
     (expr_ir,t,_) = exprIR expr st
-    s1_ir = stmtIR s1 st
-    s2_ir = stmtIR s2 st
+    s1_ir = stmtIR s1 st c
+    s2_ir = stmtIR s2 st c
     result = case t of
                 M_bool -> I_COND (expr_ir,s1_ir,s2_ir)
                 _ -> error ("TypeError: If statement expression must be of type "++(printType M_bool))
-stmtIR (M_read (str,exprs)) st = result where
+stmtIR (M_read (str,exprs)) st _ = result where
     ((I_ID (level,offset,indices)),t,_) = exprIR (M_id (str,exprs)) st
     result = case t of
                 M_int -> I_READ_I (level,offset,indices)
@@ -130,33 +133,33 @@ stmtIR (M_read (str,exprs)) st = result where
                 M_real -> I_READ_F (level,offset,indices)
                 M_char -> I_READ_C (level,offset,indices)
                 _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to read")
-stmtIR (M_print expr) st = let (expr_ir, t, _) = exprIR expr st in
+stmtIR (M_print expr) st _ = let (expr_ir, t, _) = exprIR expr st in
                              case t of
                                M_int -> I_PRINT_I expr_ir
                                M_bool -> I_PRINT_B expr_ir
                                M_real -> I_PRINT_F expr_ir
                                M_char -> I_PRINT_C expr_ir
                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
-stmtIR (M_return expr) st = I_RETURN (t_fst $ exprIR expr st)
-stmtIR (M_block (decls,stmts)) st = I_BLOCK (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
+stmtIR (M_return expr) st _ = I_RETURN (t_fst $ exprIR expr st)
+stmtIR (M_block (decls,stmts)) st c = I_BLOCK (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
     st' = collectTypesIR decls (newscope L_BLK st)
-    (st'', array_descs) = varsIR decls st'
-    fun_irs = funsIR decls st''
-    stmt_irs = stmtsIR stmts st''
-stmtIR (M_case (expr,cases)) st = I_CASE (expr_ir,cases_ir) where
+    (st'', array_descs) = varsIR decls st' c
+    fun_irs = funsIR decls st'' c
+    stmt_irs = stmtsIR stmts st'' c
+stmtIR (M_case (expr,cases)) st c = I_CASE (expr_ir,cases_ir) where
     (expr_ir,t) = case exprIR expr st of
                         (e_ir,(M_type str),0) -> (e_ir,(M_type str))
                         _ -> error "TypeError: Case statements can only match on expressions of a valid datatype"
-    cases_ir = casesIR cases t st
+    cases_ir = casesIR cases t st c
 
-casesIR :: [(String,[String],M_stmt)] -> M_type -> ST -> [(Int,Int,I_stmt)]
-casesIR cases t st = map (\c -> caseIR c t st) cases
+casesIR :: (Num a, Show a) => [(String,[String],M_stmt)] -> M_type -> ST -> IORef a -> [(Int,Int,I_stmt)]
+casesIR cases t st cntr = map (\c -> caseIR c t st cntr) cases
 
-caseIR :: (String,[String],M_stmt) -> M_type -> ST -> (Int,Int,I_stmt)
-caseIR (str,args,stmt) t st = result where
+caseIR :: (Num a, Show a) => (String,[String],M_stmt) -> M_type -> ST -> IORef a -> (Int,Int,I_stmt)
+caseIR (str,args,stmt) t st c = result where
     I_CONSTRUCTOR (num,arg_types,type_str) = look_up_verify ST_CON st str
-    (st',_) = varsIR (map (\a -> (M_var (fst a,[],snd a))) $ zip args arg_types) (newscope L_CASE st)
-    stmt_ir = stmtIR stmt st'
+    (st',_) = varsIR (map (\a -> (M_var (fst a,[],snd a))) $ zip args arg_types) (newscope L_CASE st) c
+    stmt_ir = stmtIR stmt st' c
     result = case (length arg_types) == (length args) of
                 True -> case t == (M_type type_str) of
                             True -> (num,(length arg_types),stmt_ir)

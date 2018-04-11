@@ -27,7 +27,8 @@ main = do
 
                     putStrLn ""
 
-                    let ir = generateIR ast
+                    let c = newCounter
+                    let ir = generateIR ast c
                     print ir
 
                 _ -> printErrors (filter isError ts)
