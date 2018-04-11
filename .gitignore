@@ -20,3 +20,5 @@ cabal.project.local
 .HTF/
 SymbolTable
 SymbolTable.exe
+IRGenerator
+IRGenerator.exe
