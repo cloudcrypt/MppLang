@@ -1,0 +1,17 @@
+%	Example4
+%	Author: Daniel Dastoor
+%	Purpose: Tests nested functions with array arguments
+
+var x[10]:int;
+var y[10]:int;
+fun doubleMul(x[]:int, y[]:int):int
+{
+	fun double(x:int):int
+	{
+		return x * 2;
+	};
+	return double(x[0] * y[0]);	
+};
+read x[0];
+read y[0];
+print doubleMul(x, y);

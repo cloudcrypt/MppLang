@@ -1,0 +1,17 @@
+%	Example3
+%	Author: Daniel Dastoor
+%	Purpose: Tests nested functions
+
+var x:int;
+var y:int;
+fun doubleMul(x:int, y:int):int
+{
+	fun double(x:int):int
+	{
+		return x * 2;
+	};
+	return double(x * y);	
+};
+read x;
+read y;
+print doubleMul(x, y);

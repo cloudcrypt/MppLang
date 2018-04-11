@@ -378,7 +378,7 @@ printIR (I_PROG (funs,vars,array_descs,stmts)) = "I_PROG (\n"
                                                   ++"\t,"++(printList stmts printStmtIr)++")"
 
 printFbodyIr :: I_fbody -> String
-printFbodyIr (I_FUN (str,funs,vars,args,array_descs,stmts)) = "I_PROG (\n"
+printFbodyIr (I_FUN (str,funs,vars,args,array_descs,stmts)) = "I_FUN (\n"
                                                            ++"\t "++str++"\n"
                                                            ++"\t,"++(printList funs printFbodyIr)++"\n"
                                                            ++"\t,"++(show vars)++"\n"

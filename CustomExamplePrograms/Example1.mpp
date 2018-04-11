@@ -1,7 +1,7 @@
 %	Example1
 %	Author: Daniel Dastoor
 %	Purpose: Tests blocks, while statements, and conditionals
-%
+
 var x:int;
 var y:int;
 x := -1;

@@ -1,0 +1,28 @@
+%	Example2
+%	Author: Daniel Dastoor
+%	Purpose: Tests arrays in while statements and conditionals
+
+var i,x,y:int;
+i := 10;
+x := -1;
+y := 5;
+{
+	var a1[i][i]:int;
+	var a2[i]:int;
+	a1[0][0] := x;
+	a2[0] := y;
+	while a1[0][0] < 10 do
+	{
+		a1[0][0] := a1[0][0] + 1;
+	};
+	print a2[0];
+	read a2[0];
+	if a2[0] > 0 then
+	{
+		print a2[0];
+	}
+	else
+	{
+		print -a2[0];
+	};
+};

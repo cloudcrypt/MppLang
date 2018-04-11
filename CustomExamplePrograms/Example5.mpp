@@ -1,0 +1,24 @@
+%	Example5
+%	Author: Daniel Dastoor
+%	Purpose: Tests datatypes
+
+var x,y,z:int;
+var v:ivec3;
+data ivec3 = #IV3 of int * int * int;
+fun doubleVec3(v:ivec3):ivec3
+{
+	var retval:ivec3;
+	case v of { #IV3(a,b,c) => retval := #IV3(a*2,b*2,c*2) };
+	return retval;	
+};
+read x;
+read y;
+read z;
+v := doubleVec3(#IV3(x,y,z));
+case v of { #IV3(a,b,c) => 
+	{
+		print a;
+		print b;
+		print c;
+	}
+};
