@@ -22,3 +22,5 @@ SymbolTable
 SymbolTable.exe
 IRGenerator
 IRGenerator.exe
+Mppc
+Mppc.exe

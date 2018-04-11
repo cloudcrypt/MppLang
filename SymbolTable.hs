@@ -4,8 +4,8 @@ import Prelude hiding (LT, GT)
 import System.Environment
 import System.IO
 import Data.List hiding (insert)
-import Parser
 import Lexer
+import Parser
 
 data SYM_DESC = ARGUMENT (String,M_type,Int)
               | VARIABLE (String,M_type,Int)
@@ -126,7 +126,7 @@ insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (DATATYPE (str, cons))
                           ):rest)
 insert n ((Sym_tbl(sT,nL,nA,sL)):rest) (CONSTRUCTOR (name,arg_types,type_str))
        | (inIndexList name sL) = error ("Symbol table error: "++name++" is already defined.")
-       | otherwise = (n,(Sym_tbl(sT,nL,nA,(name,Con_attr (-1,arg_types,type_str)):sL)
+       | otherwise = (n,(Sym_tbl(sT,nL,nA,(name,Con_attr (n,arg_types,type_str)):sL)
                           ):rest)
 
 inIndexList :: String -> [(String,SYM_VALUE)] -> Bool

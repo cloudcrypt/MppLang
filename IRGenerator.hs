@@ -1,4 +1,4 @@
-module Main where 
+module IRGenerator where 
 
 import Prelude hiding (LT, GT)
 import System.Environment
@@ -37,15 +37,18 @@ collectTypeIR (M_data (str,cons)) st = st'' where
 collectTypeIR _ st = st
 
 consIR :: String -> [(String,[M_type])] -> ST -> ST
-consIR datatype_name (con:cons) st = consIR datatype_name cons st' where
-    st' = conIR datatype_name con st
-consIR _ [] st = st
+consIR datatype_name cons st = consIR' datatype_name cons st 0
 
-conIR :: String -> (String,[M_type]) -> ST -> ST
-conIR datatype_name (str,types) st = st' where
+consIR' :: String -> [(String,[M_type])] -> ST -> Int -> ST
+consIR' datatype_name (con:cons) st n = consIR' datatype_name cons st' (n+1) where
+    st' = conIR datatype_name con st n
+consIR' _ [] st _ = st
+
+conIR :: String -> (String,[M_type]) -> ST -> Int -> ST
+conIR datatype_name (str,types) st n = st' where
     types_ir = typesIR types st
-    (n, st') = case isTypes types_ir of
-                True -> insert 0 st (CONSTRUCTOR (str,types_ir,datatype_name))
+    (_, st') = case isTypes types_ir of
+                True -> insert n st (CONSTRUCTOR (str,types_ir,datatype_name))
                 _ -> error "bbbb!"
 
 varIR :: M_decl -> ST -> (ST, [Array_desc])
@@ -365,30 +368,3 @@ t_snd (_,b,_) = b
 
 t_trd :: (a,b,c) -> c
 t_trd (_,_,c) = c
-
-main :: IO ()
-main = do
-    args <- getArgs
-    -- Check if proper number of args were supplied
-    case (length args) of
-        1 -> do
-            -- Perform lexing and get tokens
-            ts <- lexer (head args)
-            -- | Check if there are any errors in the list of tokens
-            case (length (filter isError ts)) of
-                0 -> do
-                    -- Recognize grammar, and build abstract syntax tree
-                    let ast = parse ts
-                    print ast
-                    -- Print syntax tree (converted back to readable code)
-                    putStr "\nParsed Syntax Tree:\n\n"
-                    putStrLn $ printAST ast
-
-                    putStrLn ""
-
-                    let ir = generateIR ast
-                    print ir
-
-                _ -> printErrors (filter isError ts)
-        _ -> do
-            putStrLn "Usage: inputFilename"

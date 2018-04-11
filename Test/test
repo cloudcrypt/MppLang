@@ -2,11 +2,17 @@ var a[4][4]:int;
 var b[4]:int;
 var c[4]:int;
 var x:int;
+var L:intlist;
+var M:intlist;
+data intlist = #NIL
+			 | #CONS of int * intlist
+			 | #TEST of int * int * int;
 fun f(y[]:int):int
 {
 	return y[0];
 };
 begin
+/*
 {
 	fun h(y:int):int
 	{
@@ -15,6 +21,10 @@ begin
 	x := h(x);
 };
 x := f(c);
+*/
+L := #CONS(1,#NIL);
+M := #NIL;
+M := #TEST(x,x,x);
 end
 /*var xs:int;
 %var y[1][1]:int;
