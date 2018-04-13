@@ -60,9 +60,9 @@ varIR :: (Num a, Show a) => M_decl -> ST -> IORef a -> (ST, [Array_desc])
 varIR f@(M_fun (str,args,t,decls,stmts)) st c = (st', []) where
     st' = insertFun c st (getSymDesc f)
 varIR v@(M_var (str,exprs,t)) st _ = result where
-    mod_st = case lastSTFun st of
-                True -> st
-                False -> tail st
+    (mod_st, incrAmt) = case lastSTFun st of
+                True -> (prepareArgs st, 0)
+                False -> (tail st, 1)
     dim_exprs = exprsIR exprs mod_st
     all_ints = allInt $ map t_snd dim_exprs
     type_ir = typeIR t st
@@ -71,7 +71,7 @@ varIR v@(M_var (str,exprs,t)) st _ = result where
                 _ -> error "An unexpected error has occured (varIR)"
     dims = map t_fst dim_exprs
     array_desc = case (length dims) > 0 of
-                    True -> [((getLastOffset st'),(incrementLevels dims))]
+                    True -> [((getLastOffset st'),(incrementLevels incrAmt dims))]
                     False -> []
     result = case all_ints of
                 True -> (st', array_desc)
@@ -316,15 +316,15 @@ isType M_real = True
 isType M_char = True
 isType (M_type str) = True
 
-incrementLevels :: [I_expr] -> [I_expr]
-incrementLevels expr_irs = map incrementLevel expr_irs
+incrementLevels :: Int -> [I_expr] -> [I_expr]
+incrementLevels n expr_irs = map (incrementLevel n) expr_irs
 
-incrementLevel :: I_expr -> I_expr
-incrementLevel (I_ID (level,offset,indices)) = I_ID (level+1,offset,(incrementLevels indices))
-incrementLevel (I_APP (op,exprs)) = I_APP (op,(incrementLevels exprs))
-incrementLevel (I_REF (level,offset)) = I_REF (level+1,offset)
-incrementLevel (I_SIZE (level,offset,dims)) = I_SIZE (level+1,offset,dims)
-incrementLevel expr_ir = expr_ir
+incrementLevel :: Int -> I_expr -> I_expr
+incrementLevel n (I_ID (level,offset,indices)) = I_ID (level+n,offset,(incrementLevels n indices))
+incrementLevel n (I_APP (op,exprs)) = I_APP (op,(incrementLevels n exprs))
+incrementLevel n (I_REF (level,offset)) = I_REF (level+n,offset)
+incrementLevel n (I_SIZE (level,offset,dims)) = I_SIZE (level+n,offset,dims)
+incrementLevel n expr_ir = expr_ir
 
 opTypeError :: M_operation -> [M_type] -> String
 opTypeError op allowed = error ("TypeError: All expressions supplied to '"
@@ -377,6 +377,17 @@ getSymDesc (M_fun (s, args, t, decls, _)) = FUNCTION (s, (reverse $ map (\(_,n,a
 lastSTFun :: ST -> Bool
 lastSTFun ((Sym_tbl (L_FUN _,_,_,_)):_) = True
 lastSTFun _ = False
+
+prepareArgs :: ST -> ST
+prepareArgs ((Sym_tbl (L_FUN t,vars,args,entries)):sts) = (Sym_tbl (L_FUN t,vars,args,(processFunEntries entries))):sts
+prepareArgs st = st
+
+processFunEntries :: [(String,SYM_VALUE)] -> [(String,SYM_VALUE)]
+processFunEntries (e@(str,Var_attr (offset,t,d)):es)
+    | offset < 0 = e:(processFunEntries es)
+    | otherwise = processFunEntries es
+processFunEntries (e:es) = processFunEntries es
+processFunEntries [] = []
 
 t_fst :: (a,b,c) -> a
 t_fst (a,_,_) = a

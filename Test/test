@@ -34,12 +34,23 @@ data intlist = #NIL
 fun f(y[]:int):int
 {
 	%var x:int;
-	return 6;
+	var zz:int;
+	var a[xs]:int;
+	return f(a);
 };
 fun g(y[]:int):int
 {
 	%var x:int;
 	return 6;
+};
+fun h(n[]:int):int
+{
+	var ttvar2:tt;
+	var test[n[1]]:int;
+	data tt = #TEST of int;
+	var ttvar:tt;
+	ttvar := #TEST(1);
+	return n[0];
 };
 begin
 %x := f(y);
