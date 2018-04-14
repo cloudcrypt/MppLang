@@ -1,0 +1,15 @@
+var x:int;
+fun f(x:int):int
+{
+	return x;
+};
+begin
+{
+	fun g(x:int):int
+	{
+		return x;
+	};
+	x := g(x);
+};
+print x;
+end
