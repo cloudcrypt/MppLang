@@ -1,0 +1,5 @@
+LOAD_I 5
+LOAD_I 6
+APP EQ
+JUMP_C end
+end : HALT

@@ -1,0 +1,18 @@
+            
+            READ_I                 %  read in two numbers
+            READ_I
+            LOAD_R  %sp
+            STORE_R %fp
+            LOAD_R %fp
+            LOAD_O -1              %  reload the two numbers   
+            LOAD_R  %fp
+            LOAD_O 0
+            APP LT
+            JUMP_C  label1         % compare 
+            APP MUL
+            PRINT_I
+            JUMP label2
+label1 :    APP DIV
+            PRINT_I
+label2 :    HALT
+

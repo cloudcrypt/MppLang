@@ -1,0 +1,40 @@
+      LOAD_R %sp
+      LOAD_R %sp
+      STORE_R %fp
+      ALLOC 2
+      ALLOC_H 3
+      LOAD_R %fp
+      STORE_O 1
+      ALLOC_H 2
+      LOAD_R %fp
+      STORE_O 2
+      LOAD_I 6
+      LOAD_R %fp 
+      LOAD_O 1
+      STORE_HO 0
+      LOAD_I 5
+      LOAD_R %fp
+      LOAD_O 1
+      STORE_HO 1
+      LOAD_I 4
+      LOAD_R %fp
+      LOAD_O 1
+      STORE_HO 2
+      LOAD_R %fp
+      LOAD_O 1
+      LOAD_R %fp
+      LOAD_O 2
+      STORE_HO 1
+      LOAD_B false
+      LOAD_R %fp
+      LOAD_O 2
+      STORE_HO 2
+      LOAD_R %fp
+      LOAD_O 2
+      LOAD_HO 1
+      LOAD_HO 2
+      PRINT_I
+      HALT
+      
+      
+      

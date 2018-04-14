@@ -1,0 +1,51 @@
+To run the AM assembler you need to set the following alias
+
+alias AM  '/usr/bin/sml @SMLload=/home/411/AM/am+.x86-linux'
+
+You can run the assembler/interpreter in three modes:
+ 
+(1) In debug mode:
+ 
+        AM -d <filename>
+
+(2) In normal mode:
+
+        AM <filename>
+
+(3) In "interactive" mode (no arguments):
+
+        AM
+
+
+This director contains several test files:
+
+test1.am+             adds 5 to the read in value
+test2.am+             reads in two numbers compares them 
+                      in one case it multiplies them
+                      in the other it divides them
+test3.am+             calculates a^b ... this is the implementation 
+                      of a recursive minisculus function with non-local 
+                      references.
+....
+
+
+The description of the stack machine is in the file 
+
+AM.spec         specification of stack machine
+
+
+
+WARNING: currently the assembler simply exits on a syntax error or a 
+         file error with no message (so you have to get it right!!)
+         I may get round to changing this!
+
+==============================================================
+Bugs:
+
+(1) December 2nd (Lloyd Smith):
+    BUG: the operation NEG is not implemented.
+    ACTION (December 2nd): implemented!
+
+(2) January 4th (Kobe Davis)
+    BUG: APP GE was not recognized!
+    ACTION (January 4th): corrected!

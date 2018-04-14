@@ -1,0 +1,82 @@
+%  m+ program 
+%          var x:int;
+%          var y:int;
+%          fun exp(b:int):int
+%          { var z:int;
+%            begin if b=0 then z:= 1
+%                  else z:= x * exp(b-1);
+%            return z;
+%          }
+%          begin
+%            read x; 
+%            read y;
+%            print exp(y);
+%          end
+% 
+
+        
+% code for main program ...
+
+            LOAD_R %sp                % access pointer for program
+            LOAD_R %sp                % set the frame pointer for prog
+            STORE_R %fp
+            ALLOC 2                   % allocate space for variables
+            READ_I                    % read and store x
+            LOAD_R %fp
+            STORE_O 1
+            READ_I                    % read and store y
+            LOAD_R %fp
+            STORE_O 2
+            LOAD_R %fp                %  load y
+            LOAD_O 2
+            ALLOC 1                   % void on stack for return value
+            LOAD_R %fp                % static link
+            LOAD_R %fp                % dynamic link
+            LOAD_R %cp                % save program counter
+            JUMP fun_exp              % call function
+            PRINT_I                   % print result
+            ALLOC -3                  % deallocate stack
+            HALT                      %  HALT!
+
+% code for function exp ...
+
+fun_exp :   LOAD_R  %sp
+            STORE_R %fp               % set new %fp to top stack element
+            ALLOC 1                   % allocate 1 void cell for local var
+            LOAD_R %fp
+            LOAD_O -4                 % load argument of fuction
+            LOAD_I 0           
+            APP EQ                    % test whether zero
+            JUMP_C  label1            %  conditional 
+            LOAD_I 1
+            LOAD_R %fp                % set z to 1
+            STORE_O 1
+            JUMP label2
+label1 :    LOAD_R %fp
+            LOAD_O -2                 % access x by chasing static link once
+            LOAD_O 1
+            LOAD_R %fp
+            LOAD_O -4                 % load argument b
+            LOAD_I 1
+            APP SUB                   % obtain b-1
+            ALLOC 1
+            LOAD_R %fp                % access link
+            LOAD_O -2
+            LOAD_R %fp                % dynamic link
+            LOAD_R %cp                % save program counter
+            JUMP fun_exp              % call function recursively
+            APP MUL
+            LOAD_R %fp
+            STORE_O 1                 % store result in z
+label2:     LOAD_R %fp
+            LOAD_O 1                  % load z again!
+            LOAD_R %fp                % load frame pointers
+            STORE_O -4                % store <result> at begining
+            LOAD_R %fp                % load frame pointer
+            LOAD_O 0                  % load <return>  
+            LOAD_R %fp               
+            STORE_O -3                % place <return> below <result>
+            ALLOC -2                  % remove top m+1 stack elements
+            STORE_R %fp               % restore old frame pointer
+            ALLOC -1                  % remove top n stack elements
+            JUMP_S                    % jump to top of stack code address 

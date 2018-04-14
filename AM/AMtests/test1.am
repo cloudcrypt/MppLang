@@ -1,0 +1,6 @@
+
+LOAD_I 5            %  load the integer 5 onto the stack
+READ_I              %  read an integer onto the stack
+APP ADD             %  add the top two values in the stack
+PRINT_I             %  print the answer
+HALT                %  stop execution of the program!

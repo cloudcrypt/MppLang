@@ -1,0 +1,10 @@
+         READ_I              %  read an integer onto the stack
+         READ_I              %  read an integer onto the stack
+         APP GE              %  compare the top two values in the stack
+         JUMP_C label1
+         LOAD_I 1            %  load the integer 1 onto the stack
+         PRINT_I             %  print the answer
+         JUMP label2
+label1:  LOAD_I 2            %  load the integer 2 onto the stack
+         PRINT_I             %  print the answer
+label2:  HALT                %  stop execution of the program!
