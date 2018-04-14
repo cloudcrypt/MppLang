@@ -1,4 +1,18 @@
 var x:int;
-var y:int;
+var a[4][2][2]:int;
 begin
+/*
+read x;
+read y;
+print x;
+print y;
+y := x;
+print y;
+*/
+read a[1][1][0];
+read a[1][1][1];
+print a[1][1][0];
+print a[1][1][1];
+read a[3][1][1];
+print a[3][1][1];
 end

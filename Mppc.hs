@@ -40,7 +40,10 @@ main = do
                             putStrLn $ printIR ir
 
                             -- Write generated stack machine code to output file
-                            writeFile (args !! 2) $ generateCode ir
+                            outFile <- openFile (args !! 2) WriteMode
+                            hSetNewlineMode outFile noNewlineTranslation
+                            hPutStr outFile $ generateCode ir
+                            hClose outFile
 
                         _ -> printErrors (filter isError ts)
                 _ -> putStrLn "Usage: inputFilename -o outputFilename"

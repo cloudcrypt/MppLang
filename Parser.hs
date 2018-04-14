@@ -2155,7 +2155,8 @@ printType (M_type s) = s
 printExpr :: M_expr -> String
 printExpr (M_ival i) = show i
 printExpr (M_rval f) = show f
-printExpr (M_bval b) = show b
+printExpr (M_bval True) = "true"
+printExpr (M_bval False) = "false"
 printExpr (M_cval c) = show c
 printExpr (M_size (s, i)) = "size("++s++(concat $ replicate i "[]")++")"
 printExpr (M_id (s, exprs)) = printArrayDecl s exprs
