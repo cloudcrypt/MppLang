@@ -1,0 +1,6 @@
+LOAD_R %sp
+LOAD_R %sp
+STORE_R %fp
+ALLOC 2
+ALLOC -2
+HALT
