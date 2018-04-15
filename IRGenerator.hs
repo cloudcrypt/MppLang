@@ -111,13 +111,13 @@ stmtsIR stmts st c = map (\s -> stmtIR s st c) stmts
 
 stmtIR :: (Num a, Show a) => M_stmt -> ST -> IORef a -> I_stmt
 stmtIR (M_ass (str, exprs, expr)) st _ = result where
-    ((I_ID (level,offset,indices)),t1,_) = exprIR (M_id (str,exprs)) st
-    (expr_ir,t2,_) = exprIR expr st
-    result = case t1 == t2 of
+    ((I_ID (level,offset,indices)),t1,d1) = exprIR (M_id (str,exprs)) st
+    (expr_ir,t2,d2) = exprIR expr st
+    result = case (t1 == t2) && (d1 == d2) of
                 True -> I_ASS (level,offset,indices,expr_ir)
                 _ -> error ("TypeError: Type mismatch in assignment:\n"
-                            ++"\tType of '"++str++"' is '"++(printType t1)
-                            ++"', but type of expression is '"++(printType t2)++"'")
+                            ++"\t'"++(printArrayDecl str exprs)++"' is "++(typeInfo (t1,d1))
+                            ++", but expression is "++(typeInfo (t2,d2))++"'")
 stmtIR (M_while (expr, stmt)) st c = result where
     (expr_ir,t,_) = exprIR expr st
     stmt_ir = stmtIR stmt st c
@@ -187,11 +187,21 @@ argExprsIR [] st = []
 refIR :: M_expr -> ST -> (I_expr,M_type,Int)
 refIR (M_id (str,exprs)) st = result where
     I_VARIABLE (level,offset,t,dims) = look_up_verify ST_VAR st str
-    result = case (length exprs) > 0 of
-                False -> case dims > 0 of
-                            True -> (I_REF (level,offset),t,dims)
-                            False -> (I_ID (level,offset,[]),t,0)
-                True -> error "TypeError: All array arguments in function calls must omit index information"
+    indice_exprs = exprsIR exprs st
+    all_ints = allInt $ map t_snd indice_exprs
+    equal_dims = checkDims dims (length exprs)
+    indices = map t_fst indice_exprs
+    result = case all_ints of
+                True -> case (length exprs) == 0 of
+                            True -> case dims == 0 of
+                                True -> (I_ID (level,offset,[]),t,0)
+                                False -> (I_REF (level,offset),t,dims)
+                            False -> case equal_dims of
+                                        True -> ((I_ID (level,offset,indices)),t,0)
+                                        False -> error ("TypeError: Incorrect dimensions for array '"++str++"':\n"
+                                                        ++"\tProvided dimensions: "++(show (length exprs))++"\n"
+                                                        ++"\tActual dimensions:   "++(show dims))
+                False -> error "TypeError: All array dimensions must be of type 'int'"
 
 exprIR :: M_expr -> ST -> (I_expr,M_type,Int)
 exprIR (M_ival i) st = ((I_IVAL i),M_int,0)
@@ -212,7 +222,7 @@ exprIR (M_id (str,exprs)) st = result where
     indices = map t_fst indice_exprs
     result = case all_ints of
                 True -> case equal_dims of
-                            True -> ((I_ID (level,offset,indices)),t,(length exprs))
+                            True -> ((I_ID (level,offset,indices)),t,0)
                             False -> error ("TypeError: Incorrect dimensions for array '"++str++"':\n"
                                             ++"\tProvided dimensions: "++(show (length exprs))++"\n"
                                             ++"\tActual dimensions:   "++(show dims))
@@ -254,18 +264,19 @@ operationIR M_ceil st types = result where
             _ -> error $ argsError (printOp M_ceil) (map fst types) [M_real]
 operationIR (M_cid str) st types = result where
     I_CONSTRUCTOR (num,arg_types,type_str) = look_up_verify ST_CON st str
-    result = case (map fst types) == arg_types of
+    cons_arg_types = zip arg_types (replicate (length arg_types) 0)
+    result = case types == cons_arg_types of
                 True -> (I_CONS (num, (length arg_types)), (M_type type_str), 0)
                 False -> error ("TypeError: Incorrect arguments to constructor '"++str++"':\n"
-                                ++"\tProvided arguments: ("++(intercalate ", " $ map printType $ map fst types)++")"++"\n"
-                                ++"\tActual arguments:   ("++(intercalate ", " $ map printType arg_types)++")")
+                                ++"\tProvided arguments: ("++(intercalate ", " $ map typeInfo types)++")"++"\n"
+                                ++"\tActual arguments:   ("++(intercalate ", " $ map typeInfo cons_arg_types)++")")
 operationIR (M_fn str) st types = result where
     I_FUNCTION (level,label,argTypes,t) = look_up_verify ST_FUN st str
     result = let revArgTypes = (reverse argTypes) in case revArgTypes == types of
                 True -> (I_CALL (label,level), t, 0)
                 False -> error ("TypeError: Incorrect arguments to function '"++str++"':\n"
-                                ++"\tProvided arguments: ("++(intercalate ", " $ map (\(tp,n) -> ("(Type: '"++(printType tp)++"', Dimensions: "++(show n)++")")) types)++")"++"\n"
-                                ++"\tActual arguments:   ("++(intercalate ", " $ map (\(tp,n) -> ("(Type: '"++(printType tp)++"', Dimensions: "++(show n)++")")) revArgTypes)++")")
+                                ++"\tProvided arguments: ("++(intercalate ", " $ map typeInfo types)++")"++"\n"
+                                ++"\tActual arguments:   ("++(intercalate ", " $ map typeInfo revArgTypes)++")")
 
 getOp1 :: M_operation -> [(M_type, Int)] -> [I_opn] -> [M_type] -> (I_opn, M_type, Int)
 getOp1 op types possible_ops allowed = result where
@@ -315,6 +326,9 @@ isType M_bool = True
 isType M_real = True
 isType M_char = True
 isType (M_type str) = True
+
+typeInfo :: (M_type,Int) -> String
+typeInfo (tp,n) = "(Type: '"++(printType tp)++"', Dimensions: "++(show n)++")"
 
 incrementLevels :: Int -> [I_expr] -> [I_expr]
 incrementLevels n expr_irs = map (incrementLevel n) expr_irs

@@ -1,18 +1,9 @@
-var x:int;
-var a[4][2][2]:int;
+var a[10]:int;
+var b[10]:int;
 begin
-/*
-read x;
-read y;
-print x;
-print y;
-y := x;
-print y;
-*/
-read a[1][1][0];
-read a[1][1][1];
-print a[1][1][0];
-print a[1][1][1];
-read a[3][1][1];
-print a[3][1][1];
+read a[8];
+read b[7];
+print b[7];
+b[7] := a[8];
+print b[7];
 end

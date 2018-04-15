@@ -1,15 +1,8 @@
-var x:int;
+var a[10][10]:int;
 fun f(x:int):int
 {
 	return x;
 };
 begin
-{
-	fun g(x:int):int
-	{
-		return x;
-	};
-	x := g(x);
-};
-print x;
+print f(a[9][8]);
 end
