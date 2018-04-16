@@ -1,29 +1,6 @@
-%var x:int;
-var a[10]:int;
-fun f(a[]:int):int
-{
-	return a[8];
-};
+var x:int;
 begin
-/*
-x := 8888;
-{
-	fun g():int
-	{
-		return x;
-	};
-	print g();
-};
-print f(4444);
-*/
-read a[8];
-read a[9];
-{
-	fun g(a[]:int):int
-	{
-		return a[9];
-	};
-	print g(a);
-};
-print f(a);
+%print 4 + 1 + 2 + 3;
+%print 8 / 4;
+print 16 / (4 / 4);
 end

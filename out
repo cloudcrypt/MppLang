@@ -3,114 +3,14 @@
 		STORE_R %fp
 		ALLOC 1
 		LOAD_I 2
-		LOAD_I 10
-		LOAD_R %sp
-		LOAD_R %fp
-		STORE_O 1
-		LOAD_R %fp
-		LOAD_O 1
-		LOAD_O 0
-		LOAD_R %fp
-		LOAD_O 2
-		LOAD_I 1
-		LOAD_R %fp
-		LOAD_O 1
-		LOAD_O 1
-		APP ADD
-		APP ADD
-		LOAD_R %fp
-		STORE_O 2
-		ALLOC_S
-		READ_I
-		LOAD_R %fp
-		LOAD_O 1
-		LOAD_I 8
-		LOAD_I 1
-		APP ADD
-		STORE_OS
-		READ_I
-		LOAD_R %fp
-		LOAD_O 1
-		LOAD_I 9
-		LOAD_I 1
-		APP ADD
-		STORE_OS
-		LOAD_R %fp
-		ALLOC 2
-		LOAD_R %sp
-		STORE_R %fp
-		ALLOC 0
-		LOAD_I 3
-		LOAD_R %fp
-		LOAD_O -2
-		LOAD_O 1
-		ALLOC 1
-		LOAD_R %fp
-		LOAD_R %fp
-		LOAD_R %cp
-		JUMP fn1
-		PRINT_I
-		LOAD_R %fp
-		LOAD_O 1
-		APP NEG
-		ALLOC_S
-		STORE_R %fp
-		LOAD_R %fp
-		LOAD_O 1
-		ALLOC 1
-		LOAD_R %fp
-		LOAD_R %fp
-		LOAD_R %cp
-		JUMP fn0
+		LOAD_I 16
+		LOAD_I 4
+		LOAD_I 4
+		APP DIV
+		APP DIV
 		PRINT_I
 		LOAD_R %fp
 		LOAD_O 2
 		APP NEG
 		ALLOC_S
 		HALT
-fn0:	LOAD_R %sp
-		STORE_R %fp
-		ALLOC 0
-		LOAD_I 2
-		LOAD_R %fp
-		LOAD_O -4
-		LOAD_I 8
-		LOAD_I 1
-		APP ADD
-		LOAD_OS
-		LOAD_R %fp
-		STORE_O -4
-		LOAD_R %fp
-		LOAD_O 0
-		LOAD_R %fp
-		STORE_O -3
-		LOAD_R %fp
-		LOAD_O 1
-		APP NEG
-		ALLOC_S
-		STORE_R %fp
-		ALLOC -1
-		JUMP_S
-fn1:	LOAD_R %sp
-		STORE_R %fp
-		ALLOC 0
-		LOAD_I 2
-		LOAD_R %fp
-		LOAD_O -4
-		LOAD_I 9
-		LOAD_I 1
-		APP ADD
-		LOAD_OS
-		LOAD_R %fp
-		STORE_O -4
-		LOAD_R %fp
-		LOAD_O 0
-		LOAD_R %fp
-		STORE_O -3
-		LOAD_R %fp
-		LOAD_O 1
-		APP NEG
-		ALLOC_S
-		STORE_R %fp
-		ALLOC -1
-		JUMP_S
