@@ -1,6 +1,6 @@
 var x:int;
+var a[10][5]:int;
 begin
-%print 4 + 1 + 2 + 3;
-%print 8 / 4;
-print 16 / (4 / 4);
+print size(a);
+print size(a[]);
 end

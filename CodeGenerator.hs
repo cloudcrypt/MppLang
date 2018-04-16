@@ -158,6 +158,7 @@ generateExpr (I_APP (op,exprs)) =
     (generateExprs exprs)++
     (generateOp op)
 generateExpr (I_REF (level,offset)) = loadFrom (level,offset,[])
+generateExpr (I_SIZE (level,offset,dim)) = generateDimSize (level,offset) dim
 
 generateOp :: I_opn -> String
 generateOp (I_CALL (label,level)) =
