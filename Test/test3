@@ -1,9 +1,24 @@
+var x:int;
 var a[10]:int;
-var b[10]:int;
+/*
+fun f(y:int):int
+{
+	return f(x);
+};
+*/
 begin
-read a[8];
-read b[7];
-print b[7];
-b[7] := a[8];
-print b[7];
+/*
+read x;
+{
+	fun g(y:int):int
+	{
+		return g(x);
+	};
+	{
+		print g(x);
+	};
+};
+*/
+read x;
+print x;
 end

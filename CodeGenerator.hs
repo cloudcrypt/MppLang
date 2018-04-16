@@ -1,9 +1,10 @@
 module CodeGenerator where
 
+import Data.List
 import SymbolTable
 
 generateCode :: IR -> String
-generateCode (I_PROG (funs,vars,array_descs,stmts)) = 
+generateCode (I_PROG (funs,vars,array_descs,stmts)) = init $ prettifyLines $
     "LOAD_R %sp\n"++
     "LOAD_R %sp\n"++
     "STORE_R %fp\n"++
@@ -15,7 +16,7 @@ generateCode (I_PROG (funs,vars,array_descs,stmts)) =
     "LOAD_O "++(show (vars+1))++"\n"++
     "APP NEG\n"++
     "ALLOC_S\n"++
-    "HALT"
+    "HALT\n"
 
 generateArrayDescs :: Int -> [(Int,[I_expr])] -> String
 generateArrayDescs vars descs = foldr (++) "" $ map (generateArrayDesc vars) descs
@@ -141,3 +142,11 @@ generateDimSize (level,offset) n =
     (concat $ replicate level "LOAD_O -2\n")++
     "LOAD_O "++(show offset)++"\n"++
     "LOAD_O "++(show (n-1))++"\n"
+
+prettifyLines :: String -> String
+prettifyLines str = concat $ map prettifyLine $ lines str
+
+prettifyLine :: String -> String
+prettifyLine line = case (findIndex (==':') line) of
+                        Just n -> let (as,bs) = splitAt (n+1) line in as++"\t\t"++bs++"\n"
+                        Nothing -> "\t\t"++line++"\n"
