@@ -16,7 +16,46 @@ generateCode (I_PROG (funs,vars,array_descs,stmts)) = init $ prettifyLines $
     "LOAD_O "++(show (vars+1))++"\n"++
     "APP NEG\n"++
     "ALLOC_S\n"++
-    "HALT\n"
+    "HALT\n"++
+    (generateFuns funs)++
+    (generateStmtFuns stmts)
+
+generateFuns :: [I_fbody] -> String
+generateFuns funs = concat $ map generateFun funs
+
+generateFun :: I_fbody -> String
+generateFun (I_FUN (label,funs,vars,args,array_descs,stmts)) = 
+    label++":LOAD_R %sp\n"++
+    "STORE_R %fp\n"++
+    "ALLOC "++(show vars)++"\n"++
+    "LOAD_I "++(show (vars+2))++"\n"++
+    (generateArrayDescs vars array_descs)++
+    (generateStmts stmts)++
+    (storeInto (0,-(args+3),[]))++
+    (loadFrom (0,0,[]))++
+    (storeInto (0,-(args+2),[]))++
+    (loadFrom (0,(vars+1),[]))++
+    "APP NEG\n"++
+    "ALLOC_S\n"++
+    "STORE_R %fp\n"++
+    "ALLOC "++(show (-args))++"\n"++
+    "JUMP_S\n"++
+    (generateFuns funs)
+
+generateStmtFuns :: [I_stmt] -> String
+generateStmtFuns stmts = concat $ map generateStmtFun stmts
+
+generateStmtFun :: I_stmt -> String
+generateStmtFun (I_WHILE (_,stmt)) = generateStmtFun stmt
+generateStmtFun (I_COND (_,s1,s2)) =
+    (generateStmtFun s1)++
+    (generateStmtFun s2)
+generateStmtFun (I_CASE (_,cases)) =
+    concat $ map (\(_,_,stmt) -> (generateStmtFun stmt)) cases
+generateStmtFun (I_BLOCK (funs,_,_,stmts)) =
+    (generateFuns funs)++
+    (generateStmtFuns stmts)
+generateStmtFun _ = ""
 
 generateArrayDescs :: Int -> [(Int,[I_expr])] -> String
 generateArrayDescs vars descs = foldr (++) "" $ map (generateArrayDesc vars) descs
@@ -67,6 +106,7 @@ generateStmt (I_BLOCK (funs,vars,array_descs,stmts)) =
 generateStmt (I_ASS (level,offset,indices,expr)) =
     (generateExpr expr)++
     (storeInto (level,offset,indices))
+generateStmt (I_RETURN expr) = generateExpr expr
 generateStmt (I_READ_I (level,offset,indices)) =
     "READ_I\n"++
     (storeInto (level,offset,indices))
@@ -92,6 +132,9 @@ generateStmt (I_PRINT_C expr) =
     (generateExpr expr)++
     "PRINT_C"++"\n"
 
+generateExprs :: [I_expr] -> String
+generateExprs exprs = concat $ map generateExpr exprs
+
 generateExpr :: I_expr -> String
 generateExpr (I_IVAL i) = "LOAD_I "++(show i)++"\n"
 generateExpr (I_RVAL r) = "LOAD_F "++(show r)++"\n"
@@ -111,6 +154,25 @@ generateExpr (I_ID (level,offset,indices)) =
     "LOAD_I "++(show $ length indices)++"\n"++
     (concat $ replicate (length indices) "APP ADD\n")++
     "LOAD_OS\n"
+generateExpr (I_APP (op,exprs)) =
+    (generateExprs exprs)++
+    (generateOp op)
+generateExpr (I_REF (level,offset)) = loadFrom (level,offset,[])
+
+generateOp :: I_opn -> String
+generateOp (I_CALL (label,level)) =
+    "ALLOC 1\n"++
+    "LOAD_R %fp\n"++
+    (concat $ replicate level "LOAD_O -2\n")++
+    "LOAD_R %fp\n"++
+    "LOAD_R %cp\n"++
+    "JUMP "++label++"\n"
+
+loadFrom :: (Int,Int,[I_expr]) -> String
+loadFrom (level,offset,[]) =
+    "LOAD_R %fp\n"++
+    (concat $ replicate level "LOAD_O -2\n")++
+    "LOAD_O "++(show offset)++"\n"
 
 storeInto :: (Int,Int,[I_expr]) -> String
 storeInto (level,offset,[]) =
@@ -148,5 +210,5 @@ prettifyLines str = concat $ map prettifyLine $ lines str
 
 prettifyLine :: String -> String
 prettifyLine line = case (findIndex (==':') line) of
-                        Just n -> let (as,bs) = splitAt (n+1) line in as++"\t\t"++bs++"\n"
+                        Just n -> let (as,bs) = splitAt (n+1) line in as++"\t"++bs++"\n"
                         Nothing -> "\t\t"++line++"\n"

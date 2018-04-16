@@ -1,24 +1,29 @@
-var x:int;
+%var x:int;
 var a[10]:int;
-/*
-fun f(y:int):int
+fun f(a[]:int):int
 {
-	return f(x);
+	return a[8];
 };
-*/
 begin
 /*
-read x;
+x := 8888;
 {
-	fun g(y:int):int
+	fun g():int
 	{
-		return g(x);
+		return x;
 	};
-	{
-		print g(x);
-	};
+	print g();
 };
+print f(4444);
 */
-read x;
-print x;
+read a[8];
+read a[9];
+{
+	fun g(a[]:int):int
+	{
+		return a[9];
+	};
+	print g(a);
+};
+print f(a);
 end
