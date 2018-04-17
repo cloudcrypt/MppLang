@@ -27,6 +27,7 @@ main = do
                         0 -> do
                             -- Recognize grammar, and build abstract syntax tree
                             let ast = parse ts
+                            print ast
                             -- Print syntax tree (converted back to readable code)
                             putStr "\nParsed Syntax Tree:\n\n"
                             putStrLn $ printAST ast

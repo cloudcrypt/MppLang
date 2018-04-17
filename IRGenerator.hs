@@ -14,11 +14,17 @@ import Parser
 import SymbolTable
 
 generateIR :: (Num a, Show a) => AST -> IORef a -> IR
-generateIR (M_prog (decls,stmts)) c = I_PROG (fun_irs,(localVarCount st'),array_descs,stmt_irs) where
-    st = collectTypesIR decls (newscope L_PROG empty)
-    (st', array_descs) = varsIR decls st c
-    fun_irs = funsIR decls st' c
-    stmt_irs = stmtsIR stmts st' c
+generateIR (M_prog (decls,stmts)) c = I_PROG (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
+    st = collectTypesIR0 decls (newscope L_PROG empty)
+    st' = collectTypesIR decls st
+    (st'', array_descs) = varsIR decls st c
+    fun_irs = funsIR decls st'' c
+    stmt_irs = stmtsIR stmts st'' c
+
+collectTypesIR0 :: [M_decl] -> ST -> ST
+collectTypesIR0 (d:ds) st = collectTypesIR0 ds st' where
+    st' = collectTypeIR0 d st
+collectTypesIR0 [] st = st
 
 collectTypesIR :: [M_decl] -> ST -> ST
 collectTypesIR (d:ds) st = collectTypesIR ds st' where
@@ -35,10 +41,17 @@ funsIR :: (Num a, Show a) => [M_decl] -> ST -> IORef a -> [I_fbody]
 funsIR (d:ds) st c = (funIR d st c)++(funsIR ds st c)
 funsIR [] st c = []
 
-collectTypeIR :: M_decl -> ST -> ST
-collectTypeIR (M_data (str,cons)) st = st'' where
+collectTypeIR0 :: M_decl -> ST -> ST
+collectTypeIR0 (M_data (str,cons)) st = st' where
     st' = insert 0 st (getSymDesc (M_data (str,cons)))
-    st'' = consIR str cons st'
+    --st'' = consIR str cons st'
+collectTypeIR0 _ st = st
+
+collectTypeIR :: M_decl -> ST -> ST
+collectTypeIR (M_data (str,cons)) st = st' where
+    st' = consIR str cons st
+    --st' = insert 0 st (getSymDesc (M_data (str,cons)))
+    --st' = consIR str cons st
 collectTypeIR _ st = st
 
 consIR :: String -> [(String,[M_type])] -> ST -> ST
@@ -81,14 +94,15 @@ varIR _ st _ = (st, [])
 funIR :: (Num a, Show a) => M_decl -> ST -> IORef a -> [I_fbody]
 funIR (M_fun (str,args,t,decls,stmts)) st c = result where
     st' = collectArgs (reverse args) (newscope (L_FUN t) st)
-    st'' = collectTypesIR decls st'
-    (st''', array_descs) = varsIR decls st'' c
-    fun_irs = funsIR decls st''' c
-    stmt_irs = stmtsIR stmts st''' c
+    st'' = collectTypesIR0 decls st'
+    st''' = collectTypesIR decls st''
+    (st'''', array_descs) = varsIR decls st''' c
+    fun_irs = funsIR decls st'''' c
+    stmt_irs = stmtsIR stmts st'''' c
     M_return return_expr = last stmts
     I_FUNCTION (_,label,_,_) = look_up_verify ST_FUN st str
-    result = let pt = (t_snd (exprIR return_expr st''')) in case pt == t of
-                True -> [I_FUN (label,fun_irs,(localVarCount st'''),(argsCount st'),array_descs,stmt_irs)]
+    result = let pt = (t_snd (exprIR return_expr st'''')) in case pt == t of
+                True -> [I_FUN (label,fun_irs,(localVarCount st''''),(argsCount st'),array_descs,stmt_irs)]
                 _ -> error ("TypeError: Return type mismatch for function '"++str++"'\n"
                             ++"\tProvided return type: '"++(printType pt)++"'\n"
                             ++"\tActual return type:   '"++(printType t)++"'")
@@ -147,11 +161,12 @@ stmtIR (M_print expr) st _ = let (expr_ir, t, _) = exprIR expr st in
                                M_char -> I_PRINT_C expr_ir
                                _ -> error ("TypeError: Wrong type '"++(printType t)++"' supplied to print")
 stmtIR (M_return expr) st _ = I_RETURN (t_fst $ exprIR expr st)
-stmtIR (M_block (decls,stmts)) st c = I_BLOCK (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
-    st' = collectTypesIR decls (newscope L_BLK st)
-    (st'', array_descs) = varsIR decls st' c
-    fun_irs = funsIR decls st'' c
-    stmt_irs = stmtsIR stmts st'' c
+stmtIR (M_block (decls,stmts)) st c = I_BLOCK (fun_irs,(localVarCount st'''),array_descs,stmt_irs) where
+    st' = collectTypesIR0 decls (newscope L_BLK st)
+    st'' = collectTypesIR decls st'
+    (st''', array_descs) = varsIR decls st'' c
+    fun_irs = funsIR decls st''' c
+    stmt_irs = stmtsIR stmts st''' c
 stmtIR (M_case (expr,cases)) st c = result where
     (expr_ir,t) = case exprIR expr st of
                         (e_ir,(M_type str),0) -> (e_ir,(M_type str))
