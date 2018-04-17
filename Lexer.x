@@ -79,6 +79,7 @@ tokens :-
   "true"                  {\p s -> BVAL p (toBool s)}
   $alpha[_$digit$alpha]*  {\p s -> ID p s}
   $quote$char$quote       {\p s -> CVAL p (s !! 1)}
+  $quote$white$quote      {\p s -> CVAL p ' '}
   $quote"\n"$quote        {\p s -> CVAL p '\n'}
   $quote"\t"$quote        {\p s -> CVAL p '\t'}
   .				                {\p s -> ERROR p s}
