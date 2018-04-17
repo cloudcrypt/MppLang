@@ -1,0 +1,42 @@
+/*
+
+    This program appends two lists together ...
+
+                                                 */
+%  Datatype for lists of integers ...
+data intlist = #cons of int * intlist
+             | #nil;
+
+var x:intlist;
+var y:intlist;
+
+fun append(a:intlist,b:intlist):intlist
+    { var z:intlist;
+      begin
+         case a of { #nil => z:= b
+                   | #cons(v,L) => z:=#cons(v,append(L,b)) };
+         return z;
+      end
+    };
+
+fun printlist(z:intlist):bool
+    { var k:bool;
+      begin 
+         case z of { #cons(z0,zs) => 
+                          { begin
+                                print z0;
+                                k := printlist(zs);
+                            end }
+                   | #nil => k:= true };
+         return k;
+      end };
+
+var v:bool;
+
+begin
+
+   x:= #cons(1,#cons(2,#nil)); y:= #cons(3,#cons(4,#nil));
+   x:= append(append(x,y),append(x,y));                   
+   v:= printlist(x);
+
+end

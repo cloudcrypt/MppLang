@@ -1,0 +1,16 @@
+
+data intlist = #nil
+             | #cons of int * intlist;
+
+var x: intlist;
+var y: intlist;
+
+begin
+x := #cons(201,#nil);
+y := #cons(202,x);
+case x of { #nil => print 0
+          | #cons(v,z) => case z of { #nil => print v
+                                    | #cons (w,l) => print w } };
+
+
+end

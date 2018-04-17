@@ -1,0 +1,55 @@
+/*
+
+    The m++ backslang program!
+
+                                    */
+
+data listchar = #nil | #cons of char * listchar;
+
+fun printstr(x: listchar):bool
+{ var z:bool;
+  begin 
+     case x of { #nil => 
+                   { begin print " "; z:= true; end}
+               | #cons(c,cs) => 
+                   { begin print c; z:= printstr(cs); end} };
+     return z;
+  end };
+
+fun readword():listchar
+{ var c:char; var z:listchar;
+  begin
+    read c;
+    if c = "\n" then 
+         { begin z:= #nil(); done:= true; end }
+    else if c = " " then 
+         { begin z:= #nil(); done:= false; end }
+    else z:= #cons(c,readword());
+    return z;
+  end };
+
+fun reverse1(w:listchar,v:listchar):listchar
+{ var z:listchar;
+  begin
+    case w of { #nil => z:= v
+              | #cons(c,cs) => z:= reverse1(cs,#cons(c,v)) };
+    return z;
+  end };
+
+fun reverse(w:listchar):listchar
+{ begin return reverse1(w,#nil()); end };
+
+var h: listchar;
+var done: bool;
+var b:bool;
+
+begin
+   done := false;
+   while not done do
+    {   var i: listchar;
+	begin 
+      i:= readword();
+      b := printstr(reverse(i));
+      end };
+  print "\n";
+end

@@ -1,0 +1,36 @@
+/*
+
+    The m++ repeater program!
+
+                                    */
+
+data listchar = #nil | #cons of char * listchar;
+
+fun printstr(x: listchar):bool
+{ var z:bool;
+  begin 
+     case x of { #nil => 
+                   { begin print "\n"; z:= true; end}
+               | #cons(c,cs) => 
+                   { begin print c; z:= printstr(cs); end} };
+     return z;
+  end };
+
+fun readstr():listchar
+{ var c:char; var z:listchar;
+  begin
+    read c;
+    if c = "\n" then z:= #nil()
+    else z:= #cons(c,readstr());
+    return z;
+  end };
+
+var h: listchar;
+var b: bool;
+
+begin
+
+   h:= readstr();
+   b := printstr(h);
+end
+

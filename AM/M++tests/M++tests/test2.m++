@@ -1,0 +1,13 @@
+data rosetree = #bud of rosetreelist;
+data rosetreelist = #rnil
+                  | #rcons of rosetree * rosetreelist;
+
+var y:rosetree;
+var x:rosetreelist;
+
+begin
+
+x:= #rcons(y,x);
+y:= #bud(x);
+
+end
