@@ -17,8 +17,24 @@ read z;
 v := doubleVec3(#IV3(x,y,z));
 case v of { #IV3(a,b,c) => 
 	{
-		print a;
-		print b;
-		print c;
+		var a:bool;
+		fun printVec3(v:ivec3):bool
+		{
+			case v of {
+				#IV3(a,b,c) => {
+					print "\n";
+					print "v";
+					print "e";
+					print "c";
+					print "3";
+					print "\n";
+					print a;
+					print b;
+					print c;
+				}
+			};
+			return true;
+		};
+		a := printVec3(v);
 	}
 };

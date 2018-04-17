@@ -1,0 +1,35 @@
+%	Example6
+%	Author: Daniel Dastoor
+%	Purpose: Tests arrays and functions with char types
+
+var a:bool;
+var str[12]:char;
+fun printString(str[]:char):bool
+{
+	var n:int;
+	var len:int;
+	n := 0;
+	len := size(str);
+	while n < len do
+	{
+		print str[n];
+		n := n + 1;
+	};
+	return true;
+};
+str[0] := "H";
+str[1] := "e";
+str[2] := "l";
+str[3] := "l";
+str[4] := "o";
+str[5] := " ";
+str[6] := "w";
+str[7] := "o";
+str[8] := "r";
+str[9] := "l";
+str[10] := "d";
+str[11] := "\n";
+a := printString(str);
+a := printString(str);
+a := printString(str);
+a := printString(str);
