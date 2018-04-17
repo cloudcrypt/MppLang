@@ -3,6 +3,10 @@ begin
 read x;
 while x < 10 do
 {
+	if x < 8 then
+		print "Y"
+	else
+		print "N";
 	print x;
 	x := x + 1;
 };

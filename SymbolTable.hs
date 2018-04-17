@@ -189,7 +189,7 @@ getNextLabel :: (Num a, Show a) => IORef a -> String
 getNextLabel c = unsafePerformIO $ getNextLabelIO c "fn"
 
 getNextCodeLabel :: (Num a, Show a) => IORef a -> String
-getNextCodeLabel c = unsafePerformIO $ getNextLabelIO c "label"
+getNextCodeLabel c = unsafePerformIO $ getNextLabelIO c "l"
 
 getNextLabelIO :: (Num a, Show a) => IORef a -> String -> IO String
 getNextLabelIO c str = do

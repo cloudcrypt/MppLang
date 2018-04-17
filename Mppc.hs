@@ -42,7 +42,8 @@ main = do
                             -- Write generated stack machine code to output file
                             outFile <- openFile (args !! 2) WriteMode
                             hSetNewlineMode outFile noNewlineTranslation
-                            hPutStr outFile $ generateCode ir
+                            let c2 = newCounter
+                            hPutStr outFile $ generateCode ir c2
                             hClose outFile
 
                         _ -> printErrors (filter isError ts)

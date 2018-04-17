@@ -1,36 +1,37 @@
 module CodeGenerator where
 
 import Data.List
+import Data.IORef
 import SymbolTable
 
-generateCode :: IR -> String
-generateCode (I_PROG (funs,vars,array_descs,stmts)) = init $ prettifyLines $
+generateCode :: (Num a, Show a) => IR -> IORef a -> String
+generateCode (I_PROG (funs,vars,array_descs,stmts)) c = init $ prettifyLines $
     "LOAD_R %sp\n"++
     "LOAD_R %sp\n"++
     "STORE_R %fp\n"++
     "ALLOC "++(show vars)++"\n"++
     "LOAD_I "++(show (vars+1))++"\n"++
     (generateArrayDescs vars array_descs)++
-    (generateStmts stmts)++
+    (generateStmts stmts c)++
     "LOAD_R %fp\n"++
     "LOAD_O "++(show (vars+1))++"\n"++
     "APP NEG\n"++
     "ALLOC_S\n"++
     "HALT\n"++
-    (generateFuns funs)++
-    (generateStmtFuns stmts)
+    (generateFuns funs c)++
+    (generateStmtFuns stmts c)
 
-generateFuns :: [I_fbody] -> String
-generateFuns funs = concat $ map generateFun funs
+generateFuns :: (Num a, Show a) => [I_fbody] -> IORef a -> String
+generateFuns funs c = concat $ map (generateFun c) funs
 
-generateFun :: I_fbody -> String
-generateFun (I_FUN (label,funs,vars,args,array_descs,stmts)) = 
+generateFun :: (Num a, Show a) => IORef a -> I_fbody -> String
+generateFun c (I_FUN (label,funs,vars,args,array_descs,stmts)) = 
     label++":LOAD_R %sp\n"++
     "STORE_R %fp\n"++
     "ALLOC "++(show vars)++"\n"++
     "LOAD_I "++(show (vars+2))++"\n"++
     (generateArrayDescs vars array_descs)++
-    (generateStmts stmts)++
+    (generateStmts stmts c)++
     (storeInto (0,-(args+3),[]))++
     (loadFrom (0,0,[]))++
     (storeInto (0,-(args+2),[]))++
@@ -40,22 +41,22 @@ generateFun (I_FUN (label,funs,vars,args,array_descs,stmts)) =
     "STORE_R %fp\n"++
     "ALLOC "++(show (-args))++"\n"++
     "JUMP_S\n"++
-    (generateFuns funs)
+    (generateFuns funs c)
 
-generateStmtFuns :: [I_stmt] -> String
-generateStmtFuns stmts = concat $ map generateStmtFun stmts
+generateStmtFuns :: (Num a, Show a) => [I_stmt] -> IORef a -> String
+generateStmtFuns stmts c = concat $ map (generateStmtFun c) stmts
 
-generateStmtFun :: I_stmt -> String
-generateStmtFun (I_WHILE (_,stmt)) = generateStmtFun stmt
-generateStmtFun (I_COND (_,s1,s2)) =
-    (generateStmtFun s1)++
-    (generateStmtFun s2)
-generateStmtFun (I_CASE (_,cases)) =
-    concat $ map (\(_,_,stmt) -> (generateStmtFun stmt)) cases
-generateStmtFun (I_BLOCK (funs,_,_,stmts)) =
-    (generateFuns funs)++
-    (generateStmtFuns stmts)
-generateStmtFun _ = ""
+generateStmtFun :: (Num a, Show a) => IORef a -> I_stmt -> String
+generateStmtFun c (I_WHILE (_,stmt)) = generateStmtFun c stmt
+generateStmtFun c (I_COND (_,s1,s2)) =
+    (generateStmtFun c s1)++
+    (generateStmtFun c s2)
+generateStmtFun c (I_CASE (_,cases)) =
+    concat $ map (\(_,_,stmt) -> (generateStmtFun c stmt)) cases
+generateStmtFun c (I_BLOCK (funs,_,_,stmts)) =
+    (generateFuns funs c)++
+    (generateStmtFuns stmts c)
+generateStmtFun _ _ = ""
 
 generateArrayDescs :: Int -> [(Int,[I_expr])] -> String
 generateArrayDescs vars descs = foldr (++) "" $ map (generateArrayDesc vars) descs
@@ -85,21 +86,32 @@ loadDimension offset n =
     "LOAD_O "++(show offset)++"\n"++
     "LOAD_O "++(show n)++"\n"
 
-generateStmts :: [I_stmt] -> String
-generateStmts stmts = foldr (++) "" $ map generateStmt stmts
+generateStmts :: (Num a, Show a) => [I_stmt] -> IORef a -> String
+generateStmts stmts c = foldr (++) "" $ map (generateStmt c) stmts
 
-generateStmt :: I_stmt -> String
-generateStmt (I_WHILE (expr,stmt)) =
+-- missing I_CASE below
+generateStmt :: (Num a, Show a) => IORef a -> I_stmt -> String
+generateStmt c (I_WHILE (expr,stmt)) =
+    label0++":"++
     (generateExpr expr)++
-    
-generateStmt (I_COND (e,s1,s2)) =
+    "JUMP_C "++label1++"\n"++
+    (generateStmt c stmt)++
+    "JUMP "++label0++"\n"++
+    label1++":"
+    where
+        label0 = getNextCodeLabel c
+        label1 = getNextCodeLabel c
+generateStmt c (I_COND (e,s1,s2)) =
     (generateExpr e)++
-    "JUMP_C label0\n"++
-    (generateStmt s1)++
-    "JUMP label1\n"++
-    "label0:"++(generateStmt s2)++
-    "label1:"
-generateStmt (I_BLOCK (funs,vars,array_descs,stmts)) =
+    "JUMP_C "++label0++"\n"++
+    (generateStmt c s1)++
+    "JUMP "++label1++"\n"++
+    label0++":"++(generateStmt c s2)++
+    label1++":"
+    where
+        label0 = getNextCodeLabel c
+        label1 = getNextCodeLabel c
+generateStmt c (I_BLOCK (funs,vars,array_descs,stmts)) =
     "LOAD_R %fp\n"++
     "ALLOC 2\n"++
     "LOAD_R %sp\n"++
@@ -107,38 +119,38 @@ generateStmt (I_BLOCK (funs,vars,array_descs,stmts)) =
     "ALLOC "++(show vars)++"\n"++
     "LOAD_I "++(show (vars+3))++"\n"++
     (generateArrayDescs vars array_descs)++
-    (generateStmts stmts)++
+    (generateStmts stmts c)++
     "LOAD_R %fp\n"++
     "LOAD_O "++(show (vars+1))++"\n"++
     "APP NEG\n"++
     "ALLOC_S\n"++
     "STORE_R %fp\n"
-generateStmt (I_ASS (level,offset,indices,expr)) =
+generateStmt _ (I_ASS (level,offset,indices,expr)) =
     (generateExpr expr)++
     (storeInto (level,offset,indices))
-generateStmt (I_RETURN expr) = generateExpr expr
-generateStmt (I_READ_I (level,offset,indices)) =
+generateStmt _ (I_RETURN expr) = generateExpr expr
+generateStmt _ (I_READ_I (level,offset,indices)) =
     "READ_I\n"++
     (storeInto (level,offset,indices))
-generateStmt (I_READ_F (level,offset,indices)) =
+generateStmt _ (I_READ_F (level,offset,indices)) =
     "READ_F\n"++
     (storeInto (level,offset,indices))
-generateStmt (I_READ_B (level,offset,indices)) =
+generateStmt _ (I_READ_B (level,offset,indices)) =
     "READ_B\n"++
     (storeInto (level,offset,indices))
-generateStmt (I_READ_C (level,offset,indices)) =
+generateStmt _ (I_READ_C (level,offset,indices)) =
     "READ_C\n"++
     (storeInto (level,offset,indices))
-generateStmt (I_PRINT_I expr) =
+generateStmt _ (I_PRINT_I expr) =
     (generateExpr expr)++
     "PRINT_I"++"\n"
-generateStmt (I_PRINT_F expr) =
+generateStmt _ (I_PRINT_F expr) =
     (generateExpr expr)++
     "PRINT_F"++"\n"
-generateStmt (I_PRINT_B expr) =
+generateStmt _ (I_PRINT_B expr) =
     (generateExpr expr)++
     "PRINT_B"++"\n"
-generateStmt (I_PRINT_C expr) =
+generateStmt _ (I_PRINT_C expr) =
     (generateExpr expr)++
     "PRINT_C"++"\n"
 
@@ -170,6 +182,7 @@ generateExpr (I_APP (op,exprs)) =
 generateExpr (I_REF (level,offset)) = loadFrom (level,offset,[])
 generateExpr (I_SIZE (level,offset,dim)) = generateDimSize (level,offset) dim
 
+-- missing I_CONS below
 generateOp :: I_opn -> String
 generateOp (I_CALL (label,level)) =
     "ALLOC 1\n"++
@@ -252,5 +265,7 @@ prettifyLines str = concat $ map prettifyLine $ lines str
 
 prettifyLine :: String -> String
 prettifyLine line = case (findIndex (==':') line) of
-                        Just n -> let (as,bs) = splitAt (n+1) line in as++"\t"++bs++"\n"
+                        Just n -> let (as,bs) = splitAt (n+1) line in as++
+                                                (if (length as) < 4 then "\t\t" else "\t")++
+                                                bs++"\n"
                         Nothing -> "\t\t"++line++"\n"
