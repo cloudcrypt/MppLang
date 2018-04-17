@@ -17,7 +17,7 @@ generateIR :: (Num a, Show a) => AST -> IORef a -> IR
 generateIR (M_prog (decls,stmts)) c = I_PROG (fun_irs,(localVarCount st''),array_descs,stmt_irs) where
     st = collectTypesIR0 decls (newscope L_PROG empty)
     st' = collectTypesIR decls st
-    (st'', array_descs) = varsIR decls st c
+    (st'', array_descs) = varsIR decls st' c
     fun_irs = funsIR decls st'' c
     stmt_irs = stmtsIR stmts st'' c
 
@@ -44,14 +44,11 @@ funsIR [] st c = []
 collectTypeIR0 :: M_decl -> ST -> ST
 collectTypeIR0 (M_data (str,cons)) st = st' where
     st' = insert 0 st (getSymDesc (M_data (str,cons)))
-    --st'' = consIR str cons st'
 collectTypeIR0 _ st = st
 
 collectTypeIR :: M_decl -> ST -> ST
 collectTypeIR (M_data (str,cons)) st = st' where
     st' = consIR str cons st
-    --st' = insert 0 st (getSymDesc (M_data (str,cons)))
-    --st' = consIR str cons st
 collectTypeIR _ st = st
 
 consIR :: String -> [(String,[M_type])] -> ST -> ST

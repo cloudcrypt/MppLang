@@ -1,53 +1,24 @@
 		LOAD_R %sp
 		LOAD_R %sp
 		STORE_R %fp
-		ALLOC 4
-		LOAD_I 5
-		LOAD_I 199
+		ALLOC 2
+		LOAD_I 3
 		LOAD_R %fp
-		STORE_O 1
-		LOAD_I 200
+		LOAD_O 1
+		LOAD_R %fp
+		LOAD_O 2
+		LOAD_I 2
+		STORE_H 3
 		LOAD_R %fp
 		STORE_O 2
-		LOAD_I 201
+		LOAD_R %fp
+		LOAD_O 2
 		LOAD_I 1
-		STORE_H 1
-		LOAD_I 2
-		STORE_H 3
+		STORE_H 2
 		LOAD_R %fp
-		STORE_O 3
-		LOAD_I 202
+		STORE_O 1
 		LOAD_R %fp
 		LOAD_O 3
-		LOAD_I 2
-		STORE_H 3
-		LOAD_R %fp
-		STORE_O 4
-		LOAD_R %fp
-		LOAD_O 3
-		LOAD_R %fp
-		ALLOC 2
-		LOAD_R %sp
-		STORE_R %fp
-		LOAD_R %fp
-		LOAD_O -3
-		LOAD_H
-		JUMP_O
-		JUMP c0_1
-		JUMP c0_2
-c0_1:	LOAD_I 0
-		PRINT_I
-		ALLOC -2
-		JUMP c0_end
-c0_2:	LOAD_R %fp
-		LOAD_O 1
-		PRINT_I
-		ALLOC -4
-		JUMP c0_end
-c0_end:	STORE_R %fp
-		ALLOC -1
-		LOAD_R %fp
-		LOAD_O 5
 		APP NEG
 		ALLOC_S
 		HALT
