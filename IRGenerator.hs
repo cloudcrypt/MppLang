@@ -42,7 +42,7 @@ collectTypeIR (M_data (str,cons)) st = st'' where
 collectTypeIR _ st = st
 
 consIR :: String -> [(String,[M_type])] -> ST -> ST
-consIR datatype_name cons st = consIR' datatype_name cons st 0
+consIR datatype_name cons st = consIR' datatype_name cons st 1
 
 consIR' :: String -> [(String,[M_type])] -> ST -> Int -> ST
 consIR' datatype_name (con:cons) st n = consIR' datatype_name cons st' (n+1) where
@@ -152,11 +152,15 @@ stmtIR (M_block (decls,stmts)) st c = I_BLOCK (fun_irs,(localVarCount st''),arra
     (st'', array_descs) = varsIR decls st' c
     fun_irs = funsIR decls st'' c
     stmt_irs = stmtsIR stmts st'' c
-stmtIR (M_case (expr,cases)) st c = I_CASE (expr_ir,cases_ir) where
+stmtIR (M_case (expr,cases)) st c = result where
     (expr_ir,t) = case exprIR expr st of
                         (e_ir,(M_type str),0) -> (e_ir,(M_type str))
                         _ -> error "TypeError: Case statements can only match on expressions of a valid datatype"
     cases_ir = casesIR cases t st c
+    I_TYPE cons = look_up_verify ST_TYPE st (printType t)
+    result = case (length cons) == (length $ nub $ map t_fst cases_ir) of
+                True -> I_CASE (expr_ir,cases_ir)
+                False -> error "SemanticError: Incomplete case statement"
 
 casesIR :: (Num a, Show a) => [(String,[String],M_stmt)] -> M_type -> ST -> IORef a -> [(Int,Int,I_stmt)]
 casesIR cases t st cntr = map (\c -> caseIR c t st cntr) cases

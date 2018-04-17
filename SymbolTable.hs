@@ -196,3 +196,12 @@ getNextLabelIO c str = do
     modifyIORef c (+1)
     n <- readIORef c
     return (str++(show n))
+
+getNextInt :: (Num a, Show a) => IORef a -> a
+getNextInt c = unsafePerformIO $ getNextIntIO c
+
+getNextIntIO :: (Num a, Show a) => IORef a -> IO a
+getNextIntIO c = do
+    modifyIORef c (+1)
+    n <- readIORef c
+    return n
