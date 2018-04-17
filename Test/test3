@@ -1,6 +1,10 @@
 var x:int;
-var a[10][5]:int;
 begin
-print size(a);
-print size(a[]);
+read x;
+while x < 10 do
+{
+	print x;
+	x := x + 1;
+};
+print x;
 end

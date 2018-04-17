@@ -89,6 +89,16 @@ generateStmts :: [I_stmt] -> String
 generateStmts stmts = foldr (++) "" $ map generateStmt stmts
 
 generateStmt :: I_stmt -> String
+generateStmt (I_WHILE (expr,stmt)) =
+    (generateExpr expr)++
+    
+generateStmt (I_COND (e,s1,s2)) =
+    (generateExpr e)++
+    "JUMP_C label0\n"++
+    (generateStmt s1)++
+    "JUMP label1\n"++
+    "label0:"++(generateStmt s2)++
+    "label1:"
 generateStmt (I_BLOCK (funs,vars,array_descs,stmts)) =
     "LOAD_R %fp\n"++
     "ALLOC 2\n"++

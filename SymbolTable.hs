@@ -186,10 +186,13 @@ newCounter :: (Num a) => IORef a
 newCounter = unsafePerformIO $ newIORef (-1)
 
 getNextLabel :: (Num a, Show a) => IORef a -> String
-getNextLabel c = unsafePerformIO $ getNextLabelIO c
+getNextLabel c = unsafePerformIO $ getNextLabelIO c "fn"
 
-getNextLabelIO :: (Num a, Show a) => IORef a -> IO String
-getNextLabelIO c = do
+getNextCodeLabel :: (Num a, Show a) => IORef a -> String
+getNextCodeLabel c = unsafePerformIO $ getNextLabelIO c "label"
+
+getNextLabelIO :: (Num a, Show a) => IORef a -> String -> IO String
+getNextLabelIO c str = do
     modifyIORef c (+1)
     n <- readIORef c
-    return ("fn"++(show n))
+    return (str++(show n))
