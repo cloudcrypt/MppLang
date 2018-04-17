@@ -1,12 +1,17 @@
-var x:vec3;
+%var x:vec3;
 %data intlist = #NIL
 %     		  | #CONS of int * intlist;
-data vec3 = #nil1
-		  | #nil2
-		  | #vec3 of int * int * int;
+%data vec3 = #nil1
+%		  | #nil2
+%		  | #vec3 of int * int * int;
+fun f(a,b,c,d:int,e,f:real):real
+{
+	return e;
+};
 begin
 %x := #CONS(5,#NIL);
 %y := #CONS(4,x);
+/*
 x := #vec3(4,5,6);
 case x of {
 	#vec3(x,y,z) => {
@@ -23,7 +28,7 @@ case x of {
 		print 2;		
 	}
 };
-/*case y of {
+case y of {
 	  #NIL => print "N"
 	| #CONS(x,xs) => { 
 		print "C";

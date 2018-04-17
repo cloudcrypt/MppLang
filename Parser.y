@@ -113,13 +113,20 @@ fun_block       : declarations fun_body             { ($1, $2) }
 
 param_list      : T_LPAR parameters T_RPAR          { $2 }
 
-parameters      : basic_declaration more_parameters { [$1]++$2 }    -- [(String, Int, Type)]
+parameters      : basic_declaration more_parameters { $1++$2 }    -- [(String, Int, Type)]
                 |                                   { [] }
 
-more_parameters : T_COMMA basic_declaration more_parameters     { [$2]++$3 }    -- [(String, Int, Type)]
+more_parameters : T_COMMA basic_declaration more_parameters     { $2++$3 }    -- [(String, Int, Type)]
                 |                                               { [] }
 
-basic_declaration   : T_ID basic_array_dimensions T_COLON type      { ($1, $2, $>) }    -- (String, Int, Type)
+basic_declaration   : arg_specs T_COLON type      { map (\x -> ((fst x), (snd x), $>)) $1 }    -- [(String, Int, Type)]
+
+arg_specs       : arg_spec more_arg_specs           { [$1]++$2 } --  [(String, Int)]
+
+more_arg_specs  : T_COMMA arg_spec more_arg_specs   { [$2]++$3 } -- [(String, Int)]
+                |                                   { [] }
+
+arg_spec        : T_ID basic_array_dimensions       { ($1, $2) } -- (String, Int)
 
 basic_array_dimensions  : T_SLPAR T_SRPAR basic_array_dimensions    { $3+1 }
                         |                                           { 0 }
