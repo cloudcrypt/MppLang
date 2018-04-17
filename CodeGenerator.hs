@@ -86,11 +86,37 @@ loadDimension offset n =
     "LOAD_O "++(show offset)++"\n"++
     "LOAD_O "++(show n)++"\n"
 
+generateCases :: (Num a, Show a) => [(Int,Int,I_stmt)] -> IORef a -> a -> String
+generateCases cases c cInt = concat $ map (generateCase c cInt) cases
+
+generateCase :: (Num a, Show a) => IORef a -> a -> (Int,Int,I_stmt) -> String
+generateCase c cInt (con,args,stmt) = 
+    "c"++(show cInt)++"_"++(show con)++":"++
+    (generateStmt c stmt)++
+    "ALLOC "++(show (-(args+2)))++"\n"++
+    "JUMP c"++(show cInt)++"_end\n"
+
 generateStmts :: (Num a, Show a) => [I_stmt] -> IORef a -> String
 generateStmts stmts c = foldr (++) "" $ map (generateStmt c) stmts
 
--- missing I_CASE below
 generateStmt :: (Num a, Show a) => IORef a -> I_stmt -> String
+generateStmt c (I_CASE (e,cases)) =
+    (generateExpr e)++
+    "LOAD_R %fp\n"++
+    "ALLOC 2\n"++
+    "LOAD_R %sp\n"++
+    "STORE_R %fp\n"++
+    (loadFrom (0,-3,[]))++
+    "LOAD_H\n"++
+    "JUMP_O\n"++
+    (concat $ map (\(n,_,_) -> ("JUMP c"++(show cInt)++"_"++(show n)++"\n")) sortedCases)++
+    (generateCases sortedCases c cInt)++
+    "c"++(show cInt)++"_end:"++
+    "STORE_R %fp\n"++
+    "ALLOC -1\n"
+    where
+        cInt = getNextInt c
+        sortedCases = sortBy (\(a,_,_) (b,_,_) -> compare a b) cases
 generateStmt c (I_WHILE (expr,stmt)) =
     label0++":"++
     (generateExpr expr)++
@@ -182,7 +208,6 @@ generateExpr (I_APP (op,exprs)) =
 generateExpr (I_REF (level,offset)) = loadFrom (level,offset,[])
 generateExpr (I_SIZE (level,offset,dim)) = generateDimSize (level,offset) dim
 
--- missing I_CONS below
 generateOp :: I_opn -> String
 generateOp (I_CALL (label,level)) =
     "ALLOC 1\n"++
@@ -191,6 +216,9 @@ generateOp (I_CALL (label,level)) =
     "LOAD_R %fp\n"++
     "LOAD_R %cp\n"++
     "JUMP "++label++"\n"
+generateOp (I_CONS (con,args)) = 
+    "LOAD_I "++(show con)++"\n"++
+    "STORE_H "++(show (args+1))++"\n"
 generateOp I_ADD_I = "APP ADD\n"
 generateOp I_ADD_F = "APP ADD_F\n"
 generateOp I_MUL_I = "APP MUL\n"
