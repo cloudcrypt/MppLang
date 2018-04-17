@@ -188,7 +188,7 @@ generateExpr (I_IVAL i) = "LOAD_I "++(show i)++"\n"
 generateExpr (I_RVAL r) = "LOAD_F "++(show r)++"\n"
 generateExpr (I_BVAL True) = "LOAD_B true\n"
 generateExpr (I_BVAL False) = "LOAD_B false\n"
-generateExpr (I_CVAL c) = "LOAD_C "++['"',c,'"']++"\n"
+generateExpr (I_CVAL c) = "LOAD_C "++(show [c])++"\n"
 generateExpr (I_ID (level,offset,[])) =
     "LOAD_R %fp\n"++
     (concat $ replicate level "LOAD_O -2\n")++
