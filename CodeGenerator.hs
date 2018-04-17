@@ -41,7 +41,8 @@ generateFun c (I_FUN (label,funs,vars,args,array_descs,stmts)) =
     "STORE_R %fp\n"++
     "ALLOC "++(show (-args))++"\n"++
     "JUMP_S\n"++
-    (generateFuns funs c)
+    (generateFuns funs c)++
+    (generateStmtFuns stmts c)
 
 generateStmtFuns :: (Num a, Show a) => [I_stmt] -> IORef a -> String
 generateStmtFuns stmts c = concat $ map (generateStmtFun c) stmts
