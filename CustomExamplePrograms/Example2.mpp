@@ -1,6 +1,6 @@
 %	Example2
 %	Author: Daniel Dastoor
-%	Purpose: Tests arrays in while statements and conditionals
+%	Purpose: Tests arrays in while statements and conditionals and M++ extended syntax for declarations
 
 var i,x,y:int;
 i := 10;

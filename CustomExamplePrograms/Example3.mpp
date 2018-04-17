@@ -1,10 +1,10 @@
 %	Example3
 %	Author: Daniel Dastoor
-%	Purpose: Tests nested functions
+%	Purpose: Tests nested functions and M++ extended syntax for functions
 
 var x:int;
 var y:int;
-fun doubleMul(x:int, y:int):int
+fun doubleMul(x,y:int, z:int):int
 {
 	fun double(x:int):int
 	{
@@ -14,4 +14,4 @@ fun doubleMul(x:int, y:int):int
 };
 read x;
 read y;
-print doubleMul(x, y);
+print doubleMul(x, y, y);
