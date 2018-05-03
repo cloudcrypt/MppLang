@@ -1,5 +1,3 @@
-
-
 -- Daniel Dastoor
 {
 module Lexer where

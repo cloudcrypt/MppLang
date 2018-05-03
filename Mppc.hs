@@ -1,5 +1,3 @@
-
-
 -- Daniel Dastoor
 module Main where
 
